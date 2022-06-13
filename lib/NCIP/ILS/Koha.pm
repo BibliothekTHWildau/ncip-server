@@ -654,6 +654,11 @@ sub request {
 
     my $borrowernumber = $patron->borrowernumber;
     my $itemnumber     = $item ? $item->itemnumber : undef;
+    
+    if (!$biblionumber && $item->biblionumber) {
+        # if not set will result in a DBI Exception
+        $biblionumber = $item->biblionumber;
+    }
 
     my $can_reserve =
       $itemnumber
