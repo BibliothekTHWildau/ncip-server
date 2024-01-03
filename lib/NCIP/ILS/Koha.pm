@@ -17,6 +17,7 @@ package NCIP::ILS::Koha;
 
 use Modern::Perl;
 use Object::Tiny qw{ name };
+use Try::Tiny;
 
 use MARC::Record;
 use MARC::Field;
@@ -30,7 +31,6 @@ use C4::Circulation qw{
   AddReturn
   CanBookBeIssued
   AddIssue
-  GetTransfers
   CanBookBeRenewed
   AddRenewal
 };
@@ -47,7 +47,6 @@ use C4::Biblio qw{
   DelBiblio
   GetMarcFromKohaField
   GetBiblioData
-  GetMarcBiblio
 };
 use C4::Barcodes::ValueBuilder;
 use C4::Items qw{
@@ -68,11 +67,12 @@ sub itemdata {
 
     if ($item) {
 	my $item_hashref = $item->unblessed();
+	$item_hashref->{object} = $item;
 
-        my $biblio = GetBiblioData( $item_hashref->{biblionumber} );
-        $item_hashref->{biblio} = $biblio;
+        my $biblio = Koha::Biblio->find( $item_hashref->{biblionumber} );
+        $item_hashref->{biblio} = $biblio->unblessed;
 
-        my $record = GetMarcBiblio({ biblionumber => $item_hashref->{biblionumber}});
+        my $record = $biblio->metadata->record;
         $item_hashref->{record} = $record;
 
         my $itemtype = Koha::Database->new()->schema()->resultset('Itemtype')
@@ -82,11 +82,8 @@ sub itemdata {
         my $hold = GetReserveStatus( $item_hashref->{itemnumber} );
         $item_hashref->{hold} = $hold;
 
-        my @holds = Koha::Holds->search( { biblionumber =>  $item_hashref->{biblionumber} } );
+        my @holds = Koha::Holds->search( { biblionumber =>  $item_hashref->{biblionumber} } )->as_list;
         $item_hashref->{holds} = \@holds;
-
-        my @transfers = GetTransfers( $item_hashref->{itemnumber} );
-        $item_hashref->{transfers} = \@transfers;
 
         return $item_hashref;
     }
@@ -103,10 +100,16 @@ sub userdata {
 
     my $block_status;
     if ( $patron->is_debarred ) {
-        $block_status = 1; # UserPrivilegeStatus => Restricted
+        $block_status = 1;    # UserPrivilegeStatus => Restricted
     }
     elsif ( C4::Context->preference('OverduesBlockCirc') eq 'block' && $patron->has_overdues ) {
-        $block_status = -1; # UserPrivilegeStatus => Delinquent
+        $block_status = -1;    # UserPrivilegeStatus => Delinquent
+    }
+    elsif (C4::Context->preference('noissuescharge')
+        && ( $patron->account_balance > C4::Context->preference('noissuescharge') )
+        && !C4::Context->preference('AllowFineOverride') )
+    {
+        $block_status = 2;
     }
     else {
         $block_status = 0;
@@ -255,14 +258,28 @@ sub checkout {
     my $item = Koha::Items->find( { barcode => $barcode } );
     $self->userenv( $item->holdingbranch, $config ) if $item;
 
+    my $dt = $date_due ? dt_from_string( $date_due, 'rfc3339' ) : undef;
+
     if ($patron) {
-        my ( $error, $confirm ) =
-          CanBookBeIssued( $patron, $barcode, $date_due );
+        my ( $error, $confirm, $problem );
+        try {
+            ( $error, $confirm ) = CanBookBeIssued( $patron, $barcode, $dt );
+        }
+        catch {
+            $problem = [
+                {
+                    problem_type   => 'Unknown Error',
+                    problem_detail => $_,
+                }
+            ];
+        };
+        return { success => 0, problems => $problem } if $problem;
 
         my $reasons = { %$error, %$confirm };
 
         delete $reasons->{DEBT} if C4::Context->preference('AllowFineOverride');
         delete $reasons->{USERBLOCKEDOVERDUE} unless C4::Context->preference("OverduesBlockCirc") eq 'block';
+        delete $reasons->{ADDITIONAL_MATERIALS}; # just triggers the accompanying materials warning in Koha during checkout
 
         if (%$reasons) {
             my @problems;
@@ -411,8 +428,21 @@ sub checkout {
             return { success => 0, problems => \@problems };
         }
         else {
-            my $issue = AddIssue( $patron->unblessed, $barcode, $date_due );
-            $date_due = dt_from_string( $issue->date_due() );
+            try {
+                my $issue = AddIssue( $patron, $barcode, $dt, my $cancel_reserve = 1 );
+                $date_due = dt_from_string( $issue->date_due() );
+            }
+            catch {
+                $problem = [
+                    {
+                        problem_type   => 'Unknown Error',
+                        problem_detail => $_,
+                    }
+                ];
+            };
+
+            return { success => 0, problems => $problem } if $problem;
+
             return {
                 success    => 1,
                 date_due   => $date_due,
@@ -588,7 +618,7 @@ sub request {
 
     my $item = $barcode ? Koha::Items->find( { barcode => $barcode } ) : undef;
 
-    if ($barcode) {
+    if ( $barcode && !$item ) {
         return {
             success  => 0,
             problems => [
@@ -599,8 +629,7 @@ sub request {
                     problem_value   => $barcode,
                 }
             ]
-          }
-          unless $item;
+        };
     }
 
     unless ($item) {
@@ -662,7 +691,7 @@ sub request {
 
     my $can_reserve =
       $itemnumber
-      ? CanItemBeReserved( $borrowernumber, $itemnumber )->{status}
+      ? CanItemBeReserved( $patron, $item )->{status}
       : CanBookBeReserved( $borrowernumber, $biblionumber )->{status};
 
     if ( $can_reserve eq 'OK' ) {
@@ -851,8 +880,8 @@ sub acceptitem {
             };
         }
     } else {
-        my @branches = Koha::Libraries->search();
-        if ( @branches > 1 ) {
+        my $branches = Koha::Libraries->search();
+        if ( $branches->count() > 1 ) {
             return {
                 success  => 0,
                 problems => [
@@ -865,7 +894,7 @@ sub acceptitem {
             };
         }
         else {
-            $branchcode = $branches[0]->{branchcode};
+            $branchcode = $branches->next()->branchcode;
         }
     }
 
@@ -1048,13 +1077,15 @@ sub delete_item {
     $self->userenv( $branch, $config );
 
     my $item = Koha::Items->find( { barcode => $barcode } );
-    my $biblio = Koha::Biblios->find( $item->biblionumber );
 
     if ($item) {
+        my $biblio = Koha::Biblios->find( $item->biblionumber );
         # Cancel holds related to this particular item,
         # there should only be one in practice
-        my @holds = Koha::Holds->search({ itemnumber => $item->id });
-        $_->cancel for @holds;
+        my $holds = Koha::Holds->search({ itemnumber => $item->id });
+        while ( my $h = $holds->next ) {
+            $h->cancel;
+        }
 
         $success = $item->delete;
 

@@ -52,6 +52,17 @@ my $patron_category = $builder->build(
 
 my $library = Koha::Libraries->search()->next();
 
+my $librarian = $builder->build_object(
+    {
+        class => 'Koha::Patrons',
+        value => {
+            branchcode   => $library->id,
+            categorycode => $patron_category->{categorycode},
+        }
+    }
+);
+config->{koha}->{userenv_borrowernumber} = $librarian->id;
+
 my $patron_1 = $builder->build_object(
     {
         class => 'Koha::Patrons',
@@ -97,11 +108,8 @@ subtest 'Test CheckOutItem with valid user and item' => sub {
         'CheckOutItemResponse returns correct item barcode'
     );
 
-    is(
-	$dom->{NCIPMessage}->{CheckOutItemResponse}->{DateDue}->{text},
-	'2032-12-30T00:00:00',
-	'CheckOutItemResponse returns correct date due'
-    );
+    is( $dom->{NCIPMessage}->{CheckOutItemResponse}->{DateDue}->{text},
+        '2032-12-30T13:54:00', 'CheckOutItemResponse returns correct date due' );
 
 };
 

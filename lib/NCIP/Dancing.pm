@@ -6,12 +6,24 @@ use FindBin;
 use Log::Log4perl;
 use XML::Tidy::Tiny qw(xml_tidy);
 use XML::Tidy;
+use Try::Tiny;
+
+use C4::Context;
 
 use NCIP;
 
 our $VERSION = '0.1';
 
-any [ 'get', 'post' ] => '/' => sub {
+any [ 'get', 'post' ] => '/' => \&process_ncip_request;
+
+any [ 'get', 'post' ] => '/:token' => \&process_ncip_request;
+
+sub process_ncip_request {
+    my $token = params->{token};
+    my $require_token = C4::Context->preference('NcipRequireToken');
+    return "It works!" if $require_token && !$token;
+    return "It works!" if $token && $token ne C4::Context->preference('NcipToken');
+
     my $appdir = realpath("$FindBin::Bin/..");
 
     #FIXME: Why are we always looking in t for the config, even for production?
@@ -30,11 +42,23 @@ any [ 'get', 'post' ] => '/' => sub {
     $xml ||= q{};
     $log->debug("RAW XML: **$xml**");
 
-    # Tidy's and validates XML. Gets rid of DOCTYPE stanzas, our parser chokes on them
-    $xml = XML::Tidy->new( xml  => $xml )->tidy()->toString() if $xml;
+    # Gets rid of DOCTYPE stanzas, our parser chokes on them
+    $xml =~ s/<!DOCTYPE[^>[]*(\[[^]]*\])?>//g;
+
+    # Tidy's and validates XML.
+    try {
+        $xml = XML::Tidy->new( xml  => $xml )->tidy()->toString() if $xml;
+    } catch {
+        $log->debug("ERROR FORMATTING XML: $_");
+    };
     $log->debug("FORMATTED: $xml");
 
-    my $content = $ncip->process_request( $xml, config );
+    my $content;
+    try {
+        $content = $ncip->process_request( $xml, config );
+    } catch {
+        $log->debug("ERROR PROCESSING REQUEST: $_");
+    };
     $content ||= "It works!"; # No NCIP message was passed in
 
     $log->debug("NCIP::Dancing: Finished processing request");
