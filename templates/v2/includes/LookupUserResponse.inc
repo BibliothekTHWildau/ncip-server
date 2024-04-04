@@ -32,7 +32,7 @@ RequestedItem
             </NameInformation>
         [%- END -%]
 
-        [%- IF element.textContent == 'UserAddress Information' -%]
+        [%- IF element.textContent == 'UserAddressInformation' -%]
             <UserAddressInformation>
                 <UserAddressRoleType>Home</UserAddressRoleType>
                 <PhysicalAddress>
