@@ -124,6 +124,33 @@ sub get_user_elements {
     return \@elements;
 }
 
+=head2 get_loaned_items_desired($xml)
+
+    my $loanedItems = get_loaned_items_desired( $xml );
+
+    When passed an xml dom, this will find the user elements and pass convert them into an arrayref
+
+=cut
+
+sub get_loaned_items_desired {
+    my ( $self, $xmldoc ) = @_;
+
+    my $xpc = $self->xpc();
+
+    #my $ns = $self->{ncip_version} == 1 ? q{} : q{ns:};
+    # as our vufind does not use namespace
+    my $ns = $self->{ncip_version} == 1 ? q{} : q{};
+
+    my $root = $xmldoc->documentElement();
+    my @elements =
+      $xpc->findnodes( '//' . $ns . 'LookupUser/LoanedItemsDesired/Value', $root );
+    unless ( $elements[0] ) {
+        @elements = $xpc->findnodes( '//' . $ns . 'LoanedItemsDesired', $root );
+    }
+
+    return \@elements;
+}
+
 =head2 get_item_elements($xml)
 
     my $elements = $self->get_item_element( $xml );

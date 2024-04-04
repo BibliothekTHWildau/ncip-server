@@ -18,7 +18,8 @@ LoanedItem
 RequestedItemsCount
 RequestedItem
 -%]
-
+[% USE DataPrinter %]
+<!-- [% DataPrinter.dump(user) %] -->
 <UserOptionalFields>
     [%- FOREACH element IN elements -%]
         [%- IF element.textContent == 'NameInformation' -%]

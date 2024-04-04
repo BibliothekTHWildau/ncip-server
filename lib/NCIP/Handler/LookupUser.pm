@@ -114,6 +114,25 @@ sub handle {
                     }
                 );
             }
+        } 
+        else {
+          # if no pin is set
+          return $self->render_output(
+                        'problem.tt',
+                        {
+                            message_type => 'LookupUserResponse',
+                            problems     => [
+                                {
+                                    problem_type =>
+                                      'User Authentication Failed',
+                                    problem_detail =>
+                                      'Password not set',
+                                    problem_element => 'Password',
+                                    problem_value   => $pin,
+                                }
+                            ]
+                        }
+                    );
         }
 
         my $vars;
@@ -128,6 +147,9 @@ sub handle {
         # and can skip looking for elementtypes
         if ( $user->is_valid() ) {
             my $elements = $self->get_user_elements($xmldoc);
+            #my $loanedItems = $self->get_loaned_items_desired($xmldoc);
+            #my $UserFiscalAccount = $self->get_loaned_items_desired($xmldoc);
+            #my $requestedItems = $self->get_requested_items_desired($xmldoc);
             return $self->render_output(
                 'response.tt',
                 {
