@@ -25,7 +25,9 @@ sub handle {
     my $xmldoc = shift;
 
     my $config = $self->{config}->{koha};
-    my $ns = $self->{ncip_version} == 1 ? q{} : q{ns:};
+    #my $ns = $self->{ncip_version} == 1 ? q{} : q{ns:};
+    # as our vufind does not use namespace
+    my $ns = $self->{ncip_version} == 1 ? q{} : q{};
 
     if ($xmldoc) {
 

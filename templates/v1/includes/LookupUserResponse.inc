@@ -38,7 +38,7 @@ RequestedItem
 
 <UserOptionalFields>
     [%- FOREACH element IN elements -%]
-        [%- IF element.textContent == 'Name Information' -%]
+        [%- IF element.textContent == 'NameInformation' -%]
             <NameInformation>
                 <PersonalNameInformation>
                     <StructuredPersonalUserName>
@@ -49,7 +49,7 @@ RequestedItem
             </NameInformation>
         [%- END -%]
 
-        [%- IF element.textContent == 'User Address Information' -%]
+        [%- IF element.textContent == 'UserAddress Information' -%]
             <UserAddressInformation>
                 <UserAddressRoleType>Home</UserAddressRoleType>
                 <PhysicalAddress>
@@ -111,7 +111,7 @@ RequestedItem
             [%- END -%]
         [%- END -%]
 
-        [%- IF element.textContent == 'User Privilege' -%]
+        [%- IF element.textContent == 'UserPrivilege' -%]
             <UserPrivilege>
                 <AgencyUserPrivilegeType>LIBRARY</AgencyUserPrivilegeType>
                 <UserPrivilegeStatus>

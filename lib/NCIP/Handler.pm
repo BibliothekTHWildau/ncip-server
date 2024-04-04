@@ -109,7 +109,10 @@ sub get_user_elements {
     my ( $self, $xmldoc ) = @_;
 
     my $xpc = $self->xpc();
-    my $ns = $self->{ncip_version} == 1 ? q{} : q{ns:};
+
+    #my $ns = $self->{ncip_version} == 1 ? q{} : q{ns:};
+    # as our vufind does not use namespace
+    my $ns = $self->{ncip_version} == 1 ? q{} : q{};
 
     my $root = $xmldoc->documentElement();
     my @elements =
