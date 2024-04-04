@@ -53,10 +53,10 @@ sub handle {
                 my $value = $xpc->findnodes( './' . $ns . 'AuthenticationInputData/Value', $node );
                 $value ||= $xpc->findnodes( './' . $ns . 'AuthenticationInputData', $node );
 
-                if ( $class->[0]->textContent eq 'Barcode Id' ) {
+                if ( $class->[0]->textContent eq 'UserId' ) {
                     $barcode = $value->[0]->textContent;
                 }
-                elsif ( $class->[0]->textContent eq 'PIN' ) {
+                elsif ( $class->[0]->textContent eq 'Password' ) {
                     $pin = $value->[0]->textContent;
                 }
 
