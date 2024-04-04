@@ -56,6 +56,8 @@ RequestedItem
                     <StructuredAddress>
                         <Line1>[% FILTER collapse %][% user.userdata.streetnumber | xml %] [% user.userdata.address | xml %][% END %]</Line1>
 
+                        <Street>[% FILTER collapse %][% user.userdata.streetnumber | xml %] [% user.userdata.address | xml %][% END %]</Street>
+
                         [%- IF user.userdata.address2 -%]
                             <Line2>[% user.userdata.address2 | xml %]</Line2>
                         [%- END -%]
