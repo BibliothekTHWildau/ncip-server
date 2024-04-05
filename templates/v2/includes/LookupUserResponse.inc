@@ -18,8 +18,36 @@ LoanedItem
 RequestedItemsCount
 RequestedItem
 -%]
-[% USE DataPrinter %]
-<!-- [% DataPrinter.dump(user) %] -->
+[%- IF items -%]
+  <LoanedItemsCount>
+    <CirculationStatus/>
+    <LoanedItemCountValue>[% items.itemsCount | xml %]</LoanedItemCountValue>
+  </LoanedItemsCount>
+  [%- FOREACH item IN items.items -%]
+  <LoanedItem>
+      <ItemId>
+         <ItemIdentifierValue>[% item.barcode | xml %]</ItemIdentifierValue> 
+      </ItemId>
+      <ReminderLevel>0</ReminderLevel>
+      <DateDue>[% item.date_due | xml %]</DateDue> 
+      <Amount>
+         <CurrencyCode/>
+         <MonetaryValue>0</MonetaryValue>
+      </Amount>
+      <Title>[% item.title | xml %]</Title>
+      <MediumType>[% item.itype | xml %]</MediumType>
+      <Ext>
+         <LocationNameValue>Halle 10 (Hochschulbibliothek)</LocationNameValue> 
+         <PickupLocation>Theke</PickupLocation> 
+         <Author></Author> 
+         <LocationWithinBuilding>[% item.itemcallnumber | xml %]</LocationWithinBuilding> 
+         <CirculationStatus></CirculationStatus>
+         <DateCheckedOut>[% item.issue_date | xml %]</DateCheckedOut>
+         <RenewalCount>[% item.renewals_count | xml %]</RenewalCount>
+      </Ext>
+   </LoanedItem>
+  [%- END -%]
+[%- END -%]
 <UserOptionalFields>
     [%- FOREACH element IN elements -%]
         [%- IF element.textContent == 'NameInformation' -%]

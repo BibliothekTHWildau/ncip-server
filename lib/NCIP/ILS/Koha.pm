@@ -66,8 +66,8 @@ sub itemdata {
     my $item = Koha::Items->find( { barcode => $barcode } );
 
     if ($item) {
-	my $item_hashref = $item->unblessed();
-	$item_hashref->{object} = $item;
+        my $item_hashref = $item->unblessed();
+        $item_hashref->{object} = $item;
 
         my $biblio = Koha::Biblio->find( $item_hashref->{biblionumber} );
         $item_hashref->{biblio} = $biblio->unblessed;
@@ -82,7 +82,8 @@ sub itemdata {
         my $hold = GetReserveStatus( $item_hashref->{itemnumber} );
         $item_hashref->{hold} = $hold;
 
-        my @holds = Koha::Holds->search( { biblionumber =>  $item_hashref->{biblionumber} } )->as_list;
+        my @holds = Koha::Holds->search(
+            { biblionumber => $item_hashref->{biblionumber} } )->as_list;
         $item_hashref->{holds} = \@holds;
 
         return $item_hashref;
@@ -90,9 +91,9 @@ sub itemdata {
 }
 
 sub userdata {
-    my $self     = shift;
-    my $userid   = shift;
-    my $config   = shift;
+    my $self   = shift;
+    my $userid = shift;
+    my $config = shift;
 
     my $patron = $self->find_patron( { userid => $userid, config => $config } );
 
@@ -102,12 +103,17 @@ sub userdata {
     if ( $patron->is_debarred ) {
         $block_status = 1;    # UserPrivilegeStatus => Restricted
     }
-    elsif ( C4::Context->preference('OverduesBlockCirc') eq 'block' && $patron->has_overdues ) {
+    elsif ( C4::Context->preference('OverduesBlockCirc') eq 'block'
+        && $patron->has_overdues )
+    {
         $block_status = -1;    # UserPrivilegeStatus => Delinquent
     }
-    elsif (C4::Context->preference('noissuescharge')
-        && ( $patron->account_balance > C4::Context->preference('noissuescharge') )
-        && !C4::Context->preference('AllowFineOverride') )
+    elsif (
+        C4::Context->preference('noissuescharge')
+        && ( $patron->account_balance >
+            C4::Context->preference('noissuescharge') )
+        && !C4::Context->preference('AllowFineOverride')
+      )
     {
         $block_status = 2;
     }
@@ -119,25 +125,82 @@ sub userdata {
 
     $patron_hashref->{restricted} = $block_status;
 
-    $patron_hashref->{dateexpiry_dt} = dt_from_string( $patron_hashref->{dateexpiry} );
+    $patron_hashref->{dateexpiry_dt} =
+      dt_from_string( $patron_hashref->{dateexpiry} );
 
     return $patron_hashref;
 }
 
+sub useritems {
+
+    my $self   = shift;
+    my $userid = shift;
+    my $config = shift;
+
+    my $patron = $self->find_patron( { userid => $userid, config => $config } );
+
+    my $log = Log::Log4perl->get_logger("NCIP");
+    $log->info("!!! ils->useritems !!!");
+
+    return unless $patron;
+
+    $log->info("!!! patron found !!!");
+
+    #my $checkouts = $patron->pending_checkouts;
+
+    my $checkouts = $patron->checkouts;
+    use Data::Dumper;
+
+    #$log->info( Dumper($pending_checkouts) );
+    #$log->info( Dumper($checkouts) );
+    my $item;
+    my @barcodes;
+    my @items;
+    my $count = 0;
+    while ( my $c = $checkouts->next ) {
+        $count++;
+        $item->{barcode}        = $c->item->barcode;
+        $item->{date_due}       = $c->date_due;
+        $item->{itype}          = $c->item->itype;
+        $item->{title}          = $c->item->biblio->title;
+        $item->{renewals_count} = $c->renewals_count;
+        $item->{issue_date}     = $c->issuedate;
+        $item->{itemcallnumber} = $c->item->itemcallnumber;
+
+        #push @barcodes, { barcode => $c->item->barcode };
+        #$log->info( Dumper($c->item));
+        #$log->info( $c->borrowernumber );
+        #$log->info( $c->item->barcode );
+        #$log->info( $c->date_due ); #duedate
+        #$log->info( $c->item->onloan ); #duedate
+        #$log->info( $c->item->itype ); #itemtype
+        #$log->info( $c->item->biblio->title ); #itemtype
+        push @items, $item;
+    }
+
+    my $result = {
+        items      => \@items,
+        itemsCount => $count,
+    };
+
+    return $result;
+
+}
+
 sub userenv {
-    my $self        = shift;
-    my $branchcode  = shift;
-    my $config      = shift;
+    my $self       = shift;
+    my $branchcode = shift;
+    my $config     = shift;
 
-    $branchcode ||= 'NCIP'; # Needed for unit testing purposes
+    $branchcode ||= 'NCIP';    # Needed for unit testing purposes
 
-    my $librarian
-        = $config->{userenv_borrowernumber}
-        ? Koha::Patrons->find( $config->{userenv_borrowernumber} )
-        : undef;
+    my $librarian =
+      $config->{userenv_borrowernumber}
+      ? Koha::Patrons->find( $config->{userenv_borrowernumber} )
+      : undef;
     warn
-        "No valid librarian found for userenv_borrowernumber $config->{userenv_borrowernumber}! Please update your configuration!"
-        unless $librarian;
+"No valid librarian found for userenv_borrowernumber $config->{userenv_borrowernumber}! Please update your configuration!"
+      unless $librarian;
 
     my @USERENV = (
         undef,     #set_userenv shifts the first var for no reason
@@ -164,11 +227,11 @@ sub checkin {
     my $config      = $params->{config};
 
     unless ($branch) {
-	my $item = Koha::Items->find( { barcode => $barcode } );
+        my $item = Koha::Items->find( { barcode => $barcode } );
         $branch = $item->holdingbranch if $item;
     }
 
-    $self->userenv($branch,$config);
+    $self->userenv( $branch, $config );
 
     my ( $success, $messages, $issue, $borrower ) =
       AddReturn( $barcode, $branch, $exempt_fine, $dropbox );
@@ -178,7 +241,9 @@ sub checkin {
     $success ||= 1 if $messages->{LocalUse};
 
     if ( $messages->{NotIssued} ) {
-        if ( $config->{no_error_on_return_without_checkout} || $config->{trap_hold_on_checkin} ) {
+        if (   $config->{no_error_on_return_without_checkout}
+            || $config->{trap_hold_on_checkin} )
+        {
             $success ||= 1;
         }
         else {
@@ -191,7 +256,7 @@ sub checkin {
                     problem_type    => 'Item Not Checked Out',
                     problem_element => 'UniqueItemIdentifier',
                     problem_value   => $barcode,
-                    problem_detail =>
+                    problem_detail  =>
                       'There is no record of the check out of the item.',
                 }
             );
@@ -278,8 +343,10 @@ sub checkout {
         my $reasons = { %$error, %$confirm };
 
         delete $reasons->{DEBT} if C4::Context->preference('AllowFineOverride');
-        delete $reasons->{USERBLOCKEDOVERDUE} unless C4::Context->preference("OverduesBlockCirc") eq 'block';
-        delete $reasons->{ADDITIONAL_MATERIALS}; # just triggers the accompanying materials warning in Koha during checkout
+        delete $reasons->{USERBLOCKEDOVERDUE}
+          unless C4::Context->preference("OverduesBlockCirc") eq 'block';
+        delete $reasons->{ADDITIONAL_MATERIALS}
+          ; # just triggers the accompanying materials warning in Koha during checkout
 
         if (%$reasons) {
             my @problems;
@@ -297,7 +364,7 @@ sub checkout {
             push(
                 @problems,
                 {
-                    problem_type => 'User Ineligible To Check Out This Item',
+                    problem_type   => 'User Ineligible To Check Out This Item',
                     problem_detail =>
                       'Item is alredy checked out to this User.',
                     problem_element => 'ItemIdentifierValue',
@@ -330,7 +397,7 @@ sub checkout {
                     : $reasons->{DEBT}                 ? 'User has debt'
                     : $reasons->{USERBLOCKEDNOENDDATE} ? 'User restricted'
                     : $reasons->{AGE_RESTRICTION}      ? 'Age restriction'
-                    : $reasons->{USERBLOCKEDOVERDUE}   ? 'User has overdue items'
+                    : $reasons->{USERBLOCKEDOVERDUE} ? 'User has overdue items'
                     :                                  'Reason unkown'
                 }
               )
@@ -346,7 +413,7 @@ sub checkout {
             push(
                 @problems,
                 {
-                    problem_type => 'Maximum Check Outs Exceeded',
+                    problem_type   => 'Maximum Check Outs Exceeded',
                     problem_detail =>
                       'Check out cannot proceed because the User '
                       . 'already has the maximum number of items checked out.',
@@ -410,7 +477,7 @@ sub checkout {
               || $reasons->{NO_MORE_RENEWALS}                   #FIXME have
               || $reasons->{RENEW_ISSUE};    #FIXME different error
 
-            unless ( @problems ) {
+            unless (@problems) {
                 push(
                     @problems,
                     {
@@ -420,16 +487,17 @@ sub checkout {
                         problem_element => 'ItemIdentifierValue',
                         problem_value   => $barcode,
                     }
-                  );
+                );
 
-                warn Data::Dumper::Dumper( $reasons );
+                warn Data::Dumper::Dumper($reasons);
             }
 
             return { success => 0, problems => \@problems };
         }
         else {
             try {
-                my $issue = AddIssue( $patron, $barcode, $dt, my $cancel_reserve = 1 );
+                my $issue =
+                  AddIssue( $patron, $barcode, $dt, my $cancel_reserve = 1 );
                 $date_due = dt_from_string( $issue->date_due() );
             }
             catch {
@@ -506,7 +574,7 @@ sub renew {
         success  => 0,
         problems => [
             {
-                problem_type => 'Item Not Checked Out',
+                problem_type   => 'Item Not Checked Out',
                 problem_detail =>
                   'There is no record of the check out of the Item.',
                 problem_element => 'UniqueItemIdentifier',
@@ -545,8 +613,7 @@ sub renew {
       }
       if $error;    # Generic message for all other reasons
 
-    my $datedue =
-      AddRenewal( $patron->borrowernumber, $item->itemnumber );
+    my $datedue = AddRenewal( $patron->borrowernumber, $item->itemnumber );
 
     return {
         success => 1,
@@ -600,15 +667,16 @@ sub request {
     $branchcode ||= q{};
     $branchcode =~ s/^\s+|\s+$//g;
     $branchcode ||= $patron->branchcode;
-    my $branch = Koha::Libraries->find( $branchcode );
+    my $branch = Koha::Libraries->find($branchcode);
     return {
         success  => 0,
         problems => [
             {
                 #FIXME: probably no the most apropo type
                 # but unable to find a better one
-                problem_type    => 'Unknown Agency',
-                problem_detail  => 'The library from which the item is requested is not known.',
+                problem_type   => 'Unknown Agency',
+                problem_detail =>
+                  'The library from which the item is requested is not known.',
                 problem_element => 'ToAgencyId',
                 problem_value   => $branchcode,
             }
@@ -634,7 +702,7 @@ sub request {
 
     unless ($item) {
         if ( $type eq 'SYSNUMBER' ) {
-	    my $biblio = Koha::Biblios->find( $biblionumber );
+            my $biblio = Koha::Biblios->find($biblionumber);
 
             return {
                 success  => 0,
@@ -654,7 +722,7 @@ sub request {
                 success  => 0,
                 problems => [
                     {
-                        problem_type => 'Tempaorary Processing Failure',
+                        problem_type   => 'Tempaorary Processing Failure',
                         problem_detail =>
                           'Unable to handle record look up by ISBN. '
                           . 'Not yet implemented',
@@ -683,8 +751,9 @@ sub request {
 
     my $borrowernumber = $patron->borrowernumber;
     my $itemnumber     = $item ? $item->itemnumber : undef;
-    
-    if (!$biblionumber && $item->biblionumber) {
+
+    if ( !$biblionumber && $item->biblionumber ) {
+
         # if not set will result in a DBI Exception
         $biblionumber = $item->biblionumber;
     }
@@ -717,7 +786,7 @@ sub request {
                 success  => 0,
                 problems => [
                     {
-                        problem_type => 'Duplicate Request',
+                        problem_type   => 'Duplicate Request',
                         problem_detail =>
                           'Request for the Item already exists; '
                           . 'acting on this update would create a duplicate request for the Item for the User',
@@ -757,7 +826,7 @@ sub request {
             success  => 0,
             problems => [
                 {
-                    problem_type => 'User Ineligible To Request This Item',
+                    problem_type   => 'User Ineligible To Request This Item',
                     problem_detail =>
                       'User has placed the maximum requests allowed.',
                     problem_element => 'UniqueItemIdentifier',
@@ -801,7 +870,7 @@ sub request {
                     problem_type    => 'User Ineligible To Request This Item',
                     problem_element => 'UniqueItemIdentifier',
                     problem_value   => $barcode,
-                    problem_detail =>
+                    problem_detail  =>
                       'User cannot request this Item. ILS returned code '
                       . $can_reserve,
                 }
@@ -816,8 +885,8 @@ sub cancelrequest {
 
     my $success = 0;
 
-    my $hold = Koha::Holds->find( $request_id );
-    if ( $hold ) {
+    my $hold = Koha::Holds->find($request_id);
+    if ($hold) {
         $success = $hold->cancel();
     }
 
@@ -840,53 +909,58 @@ sub acceptitem {
     $branchcode =~ s/^\s+|\s+$//g;
     $branchcode = "$branchcode";    # Convert XML::LibXML::NodeList to string
 
-    my $frameworkcode            = $config->{framework}                || 'FA';
-    my $item_branchcode          = $config->{item_branchcode}          || $branchcode;
-    my $always_generate_barcode  = $config->{always_generate_barcode}  || 0;
-    my $barcode_prefix           = $config->{barcode_prefix}           || q{};
-    my $replacement_price        = $config->{replacement_price}        || undef;
-    my $item_itemtype            = $config->{item_itemtype}            || q{};
-    my $item_ccode               = $config->{item_ccode}               || q{};
-    my $item_location            = $config->{item_location}            || q{};
+    my $frameworkcode            = $config->{framework}       || 'FA';
+    my $item_branchcode          = $config->{item_branchcode} || $branchcode;
+    my $always_generate_barcode  = $config->{always_generate_barcode} || 0;
+    my $barcode_prefix           = $config->{barcode_prefix}          || q{};
+    my $replacement_price        = $config->{replacement_price}       || undef;
+    my $item_itemtype            = $config->{item_itemtype}           || q{};
+    my $item_ccode               = $config->{item_ccode}              || q{};
+    my $item_location            = $config->{item_location}           || q{};
     my $trap_hold_on_accept_item = $config->{trap_hold_on_accept_item} // 1;
-    my $suppress_in_opac         = $config->{suppress_in_opac}         || q{};
+    my $suppress_in_opac         = $config->{suppress_in_opac} || q{};
 
-    my $item_callnumber = $iteminfo->{itemcallnumber} || $config->{item_callnumber} || q{};
+    my $item_callnumber =
+      $iteminfo->{itemcallnumber} || $config->{item_callnumber} || q{};
 
     my ( $field, $subfield ) =
       GetMarcFromKohaField( 'biblioitems.itemtype', $frameworkcode );
-    ( $field, $subfield ) =
-      GetMarcFromKohaField( 'biblioitems.itemtype' ) unless $field && $subfield;
+    ( $field, $subfield ) = GetMarcFromKohaField('biblioitems.itemtype')
+      unless $field && $subfield;
 
     my $fieldslib =
       C4::Biblio::GetMarcStructure( 1, $frameworkcode, { unsafe => 1 } );
     my $itemtype =
-      $iteminfo->{itemtype} || $fieldslib->{$field}{$subfield}{defaultvalue} || $item_itemtype;
+         $iteminfo->{itemtype}
+      || $fieldslib->{$field}{$subfield}{defaultvalue}
+      || $item_itemtype;
 
     my $patron = $self->find_patron( { userid => $userid, config => $config } );
 
     if ($branchcode) {
-        my $valid = Koha::Libraries->search({ branchcode => $branchcode })->count();
+        my $valid =
+          Koha::Libraries->search( { branchcode => $branchcode } )->count();
         if ( !$valid ) {
             return {
                 success  => 0,
                 problems => [
                     {
-                        problem_type => 'Pickup Library Invalid',
+                        problem_type   => 'Pickup Library Invalid',
                         problem_detail =>
-                          'Invalid pickup library specified in AcceptItem message. PickupLocation must match a Koha branchcode',
+'Invalid pickup library specified in AcceptItem message. PickupLocation must match a Koha branchcode',
                     }
                 ]
             };
         }
-    } else {
+    }
+    else {
         my $branches = Koha::Libraries->search();
         if ( $branches->count() > 1 ) {
             return {
                 success  => 0,
                 problems => [
                     {
-                        problem_type => 'Pickup Library Not Specified',
+                        problem_type   => 'Pickup Library Not Specified',
                         problem_detail =>
                           'Pickup library not specified in AcceptItem message.',
                     }
@@ -943,8 +1017,10 @@ sub acceptitem {
             );
         }
 
-        $ENV{"OVERRIDE_SYSPREF_BiblioAddsAuthorities"} = 0; # Never auto-link incoming biblio
-        ( $biblionumber, $biblioitemnumber ) = AddBiblio( $record, $frameworkcode );
+        $ENV{"OVERRIDE_SYSPREF_BiblioAddsAuthorities"} =
+          0;    # Never auto-link incoming biblio
+        ( $biblionumber, $biblioitemnumber ) =
+          AddBiblio( $record, $frameworkcode );
 
         if ($barcode_prefix) {
             $barcode = $barcode_prefix . $barcode;
@@ -984,15 +1060,16 @@ sub acceptitem {
         $itemnumber       = $item->itemnumber;
     }
 
-    $item ||= Koha::Items->find( $itemnumber );
+    $item ||= Koha::Items->find($itemnumber);
 
-    my $holds = $item->current_holds;
+    my $holds      = $item->current_holds;
     my $first_hold = $holds->next;
     my $reserve_id = $first_hold ? $first_hold->reserve_id : undef;
 
     # Now we have to check the requested action
     if ( $action =~ /^Hold For Pickup/ || $action =~ /^Circulate/ ) {
-        if ($reserve_id) { # There shouldn't be a hold already, abort if there is one
+        if ($reserve_id)
+        {    # There shouldn't be a hold already, abort if there is one
             return {
                 problem_type =>
                   'Check Out Not Allowed - Item Has Outstanding Requests',
@@ -1002,8 +1079,9 @@ sub acceptitem {
                 problem_value   => $barcode,
             };
         }
-        else { # Place hold
-            if ($userid && $patron) { # Check userid as well as patron in case username "" exists
+        else {    # Place hold
+            if ( $userid && $patron )
+            {     # Check userid as well as patron in case username "" exists
                 $reserve_id = AddReserve(
                     {
                         branchcode     => $branchcode,
@@ -1031,11 +1109,15 @@ sub acceptitem {
         }
     }
 
-    # If hold should be trapped on checkin, it should be trapped at this time as well
-    my ( $success, $messages, $issue, $borrower ) = AddReturn( $barcode, $item_branchcode, undef, undef );
+# If hold should be trapped on checkin, it should be trapped at this time as well
+    my ( $success, $messages, $issue, $borrower ) =
+      AddReturn( $barcode, $item_branchcode, undef, undef );
     $success = $messages->{'NotIssued'} ? 1 : 0;
 
-    my $problems = $success ? [] : [
+    my $problems =
+      $success
+      ? []
+      : [
         {
             problem_type   => 'Temporary Processing Failure',
             problem_detail => 'Request was placed for user but return of '
@@ -1043,16 +1125,17 @@ sub acceptitem {
             problem_element => 'ItemIdentifierValue',
             problem_value   => $barcode,
         }
-    ];
+      ];
 
     if ( $success && $trap_hold_on_accept_item ) {
         my $transferToDo = $item->holdingbranch ne $item->homebranch;
-        ModReserveAffect( $itemnumber, $patron->id, $transferToDo, $reserve_id );
+        ModReserveAffect( $itemnumber, $patron->id, $transferToDo,
+            $reserve_id );
 
         if ($transferToDo) {
-           my $from_branch = $item->holdingbranch;
-           my $to_branch   = $branchcode;
-           ModItemTransfer( $itemnumber, $from_branch, $to_branch, 'Reserve' );
+            my $from_branch = $item->holdingbranch;
+            my $to_branch   = $branchcode;
+            ModItemTransfer( $itemnumber, $from_branch, $to_branch, 'Reserve' );
         }
     }
 
@@ -1080,9 +1163,10 @@ sub delete_item {
 
     if ($item) {
         my $biblio = Koha::Biblios->find( $item->biblionumber );
+
         # Cancel holds related to this particular item,
         # there should only be one in practice
-        my $holds = Koha::Holds->search({ itemnumber => $item->id });
+        my $holds = Koha::Holds->search( { itemnumber => $item->id } );
         while ( my $h = $holds->next ) {
             $h->cancel;
         }
@@ -1142,13 +1226,14 @@ sub authenticate_patron {
 sub find_patron {
     my ( $self, $params ) = @_;
 
-    my $userid = $params->{userid};
+    my $userid               = $params->{userid};
     my $user_id_lookup_field = $params->{config}->{user_id_lookup_field} || q{};
 
-    my $patron
-        = $user_id_lookup_field
-        ? Koha::Patrons->find( { $user_id_lookup_field => $userid } )
-        : Koha::Patrons->find( { cardnumber            => $userid } ) || Koha::Patrons->find( { userid => $userid } );
+    my $patron =
+      $user_id_lookup_field
+      ? Koha::Patrons->find( { $user_id_lookup_field => $userid } )
+      : Koha::Patrons->find( { cardnumber            => $userid } )
+      || Koha::Patrons->find( { userid => $userid } );
 
     return $patron;
 }

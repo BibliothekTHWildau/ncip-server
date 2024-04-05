@@ -17,7 +17,7 @@ use base qw(Class::Accessor);
 NCIP::User->mk_accessors(qw(userid ils userdata));
 
 sub initialise {
-    my ($self, $config) = @_;
+    my ( $self, $config ) = @_;
 
     my $ils = $self->ils;
 
@@ -45,6 +45,28 @@ sub authenticate {
             pin      => $pin
         }
     );
+}
+
+sub loaned_items {
+     my ( $self, $config ) = @_;
+
+    #use C4::Auth qw(check_cookie_auth haspermission);
+    #my $userid = $session->param('id');
+   # unless (
+    #    haspermission( $userid,
+    #        { circulate => 'circulate_remaining_permissions' } )
+    #    || haspermission( $userid, { borrowers => 'edit_borrowers' } )
+    #  )
+    #{
+    #    exit 0;
+    #}
+
+    my $log = Log::Log4perl->get_logger("NCIP");
+    $log->info( "!!! user->loaned_items !!!");
+    
+    return $self->ils->useritems( $self->userid, $config )
+
+    #return "jippie";
 }
 
 1;

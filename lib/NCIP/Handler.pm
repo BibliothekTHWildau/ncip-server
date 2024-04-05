@@ -148,7 +148,12 @@ sub get_loaned_items_desired {
         @elements = $xpc->findnodes( '//' . $ns . 'LoanedItemsDesired', $root );
     }
 
-    return \@elements;
+    # still not found
+    unless ( $elements[0] ) {
+      return 0;
+    }
+
+    return 1;
 }
 
 =head2 get_item_elements($xml)
