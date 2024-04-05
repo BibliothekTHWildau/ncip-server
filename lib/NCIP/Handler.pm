@@ -124,7 +124,7 @@ sub get_user_elements {
     return \@elements;
 }
 
-=head2 get_loaned_items_desired($xml)
+=head2 get_items_desired($xml,$type)
 
     my $loanedItems = get_loaned_items_desired( $xml );
 
@@ -132,8 +132,8 @@ sub get_user_elements {
 
 =cut
 
-sub get_loaned_items_desired {
-    my ( $self, $xmldoc ) = @_;
+sub get_items_desired {
+    my ( $self, $xmldoc, $type ) = @_;
 
     my $xpc = $self->xpc();
 
@@ -143,9 +143,9 @@ sub get_loaned_items_desired {
 
     my $root = $xmldoc->documentElement();
     my @elements =
-      $xpc->findnodes( '//' . $ns . 'LookupUser/LoanedItemsDesired/Value', $root );
+      $xpc->findnodes( '//' . $ns . "LookupUser/$type/Value", $root );
     unless ( $elements[0] ) {
-        @elements = $xpc->findnodes( '//' . $ns . 'LoanedItemsDesired', $root );
+        @elements = $xpc->findnodes( '//' . $ns . $type, $root );
     }
 
     # still not found

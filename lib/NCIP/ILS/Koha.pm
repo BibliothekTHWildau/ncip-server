@@ -58,6 +58,7 @@ use Koha::Holds;
 use Koha::Items;
 use Koha::Libraries;
 use Koha::Patrons;
+use Koha::Biblio;
 
 sub itemdata {
     my $self    = shift;
@@ -131,6 +132,56 @@ sub userdata {
     return $patron_hashref;
 }
 
+sub userholds {
+    my $self   = shift;
+    my $userid = shift;
+    my $config = shift;
+
+    my $patron = $self->find_patron( { userid => $userid, config => $config } );
+
+    # todo remove
+    my $log = Log::Log4perl->get_logger("NCIP");
+
+    return unless $patron;
+
+    my $holds = $patron->holds;
+    use Data::Dumper;
+
+    my $item;
+    my @items;
+    my $count = 0;
+    while ( my $c = $holds->next ) {
+        $count++;
+        $log->info( Dumper($c) );
+        $item->{barcode}        = $c->biblionumber;
+        $item->{title}          = $c->biblio->title;
+        $item->{BibliographicId} = $c->biblionumber;
+        $item->{DatePlaced} = $c->reservedate;
+        $item->{PickupLocation} = $c->branchcode; # desk_id?;
+        # todo fields
+        #<xs:element ref="RequestType"/>
+        #<xs:element ref="RequestStatusType"/>
+        #<xs:element ref="PickupDate" minOccurs="0"/>
+        #<xs:element ref="PickupLocation" minOccurs="0"/>
+        #<xs:element ref="PickupExpiryDate" minOccurs="0"/>
+        #<xs:element ref="ReminderLevel" minOccurs="0"/>
+        #<xs:element ref="HoldQueuePosition" minOccurs="0"/>
+        #<xs:element ref="Title" minOccurs="0"/>
+        #<xs:element ref="MediumType" minOccurs="0"/>
+        #<xs:element ref="Ext" minOccurs="0"/>
+        
+        push @items, $item;
+    }
+
+    my $result = {
+        items      => \@items,
+        itemsCount => $count,
+    };
+
+    return $result;
+
+}
+
 sub useritems {
 
     my $self   = shift;
@@ -139,22 +190,19 @@ sub useritems {
 
     my $patron = $self->find_patron( { userid => $userid, config => $config } );
 
+    #todo remove
     my $log = Log::Log4perl->get_logger("NCIP");
-    $log->info("!!! ils->useritems !!!");
-
+    
     return unless $patron;
 
-    $log->info("!!! patron found !!!");
-
+    # used in sip2 patronAccount
     #my $checkouts = $patron->pending_checkouts;
-
     my $checkouts = $patron->checkouts;
+    
+    #todo remove
     use Data::Dumper;
 
-    #$log->info( Dumper($pending_checkouts) );
-    #$log->info( Dumper($checkouts) );
     my $item;
-    my @barcodes;
     my @items;
     my $count = 0;
     while ( my $c = $checkouts->next ) {

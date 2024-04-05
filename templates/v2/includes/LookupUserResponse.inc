@@ -18,12 +18,12 @@ LoanedItem
 RequestedItemsCount
 RequestedItem
 -%]
-[%- IF items -%]
+[%- IF loaned_items -%]
   <LoanedItemsCount>
     <CirculationStatus/>
-    <LoanedItemCountValue>[% items.itemsCount | xml %]</LoanedItemCountValue>
+    <LoanedItemCountValue>[% loaned_items.itemsCount | xml %]</LoanedItemCountValue>
   </LoanedItemsCount>
-  [%- FOREACH item IN items.items -%]
+  [%- FOREACH item IN loaned_items.items -%]
   <LoanedItem>
       <ItemId>
          <ItemIdentifierValue>[% item.barcode | xml %]</ItemIdentifierValue> 
@@ -48,6 +48,34 @@ RequestedItem
    </LoanedItem>
   [%- END -%]
 [%- END -%]
+
+[%- IF requested_items -%]
+  <RequestedItemsCount>
+    <CirculationStatus/>
+    <RequestedItemsCountValue>[% requested_items.itemsCount | xml %]</RequestedItemsCountValue>
+  </RequestedItemsCount>
+  [%- FOREACH item IN requested_items.items -%]
+  <RequestedItem>
+      <ItemId>
+         <ItemIdentifierValue>[% item.barcode | xml %]</ItemIdentifierValue> 
+      </ItemId>
+      <ReminderLevel>0</ReminderLevel>
+      <Title>[% item.title | xml %]</Title>
+      <BibliographicId>[% item.BibliographicId | xml %]</BibliographicId>
+      <MediumType>[% item.itype | xml %]</MediumType>
+      <DatePlaced>[% item.DatePlaced | xml %]</DatePlaced>
+      <Ext>
+         <LocationNameValue></LocationNameValue> 
+         <PickupLocation>[% item.PickupLocation | xml %]</PickupLocation> 
+         <LocationWithinBuilding>[% item.itemcallnumber | xml %]</LocationWithinBuilding> 
+         <CirculationStatus></CirculationStatus>
+         <DateCheckedOut>[% item.issue_date | xml %]</DateCheckedOut>
+         <RenewalCount>[% item.renewals_count | xml %]</RenewalCount>
+      </Ext>
+   </RequestedItem>
+  [%- END -%]
+[%- END -%]
+
 <UserOptionalFields>
     [%- FOREACH element IN elements -%]
         [%- IF element.textContent == 'NameInformation' -%]

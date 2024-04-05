@@ -147,17 +147,22 @@ sub handle {
         # and can skip looking for elementtypes
         if ( $user->is_valid() ) {
             my $elements = $self->get_user_elements($xmldoc);
-            
-            my $loanedItemsDesired = $self->get_loaned_items_desired($xmldoc);
+
+            my $log = Log::Log4perl->get_logger("NCIP"); 
             my $loaned_items;
-            if ($loanedItemsDesired){
-              my $log = Log::Log4perl->get_logger("NCIP");
+            my $requested_items; 
+            if ($self->get_items_desired($xmldoc,'LoanedItemsDesired')){
               $log->info( "!!! loanedItemsDesired !!!");
-              $loaned_items = $user->loaned_items($config);
+              $loaned_items = $user->items($config,'loaned');
             }
+
+            if ($self->get_items_desired($xmldoc,'RequestedItemsDesired')){
+              $log->info( "!!! RequestedItemsDesired !!!");
+              $requested_items = $user->items($config,'requested');
+            }
+            
             #todo
             #my $UserFiscalAccount = $self->get_loaned_items_desired($xmldoc);
-            #my $requestedItems = $self->get_requested_items_desired($xmldoc);
             return $self->render_output(
                 'response.tt',
                 {
@@ -165,7 +170,8 @@ sub handle {
                     from_agency  => $to,
                     to_agency    => $from,
                     elements     => $elements,
-                    items        => $loaned_items,
+                    loaned_items => $loaned_items,
+                    requested_items => $requested_items,
                     user         => $user,
                     user_id      => $user_id,
                     config       => $config,

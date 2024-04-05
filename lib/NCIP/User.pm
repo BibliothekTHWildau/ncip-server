@@ -47,26 +47,21 @@ sub authenticate {
     );
 }
 
-sub loaned_items {
-     my ( $self, $config ) = @_;
-
-    #use C4::Auth qw(check_cookie_auth haspermission);
-    #my $userid = $session->param('id');
-   # unless (
-    #    haspermission( $userid,
-    #        { circulate => 'circulate_remaining_permissions' } )
-    #    || haspermission( $userid, { borrowers => 'edit_borrowers' } )
-    #  )
-    #{
-    #    exit 0;
-    #}
+sub items {
+    my ( $self, $config, $type ) = @_;
 
     my $log = Log::Log4perl->get_logger("NCIP");
-    $log->info( "!!! user->loaned_items !!!");
-    
-    return $self->ils->useritems( $self->userid, $config )
 
-    #return "jippie";
+    if ( $type eq 'loaned' ) {
+        $log->info("!!! user->loaned_items !!!");
+        return $self->ils->useritems( $self->userid, $config );
+    }
+    elsif ( $type eq 'requested' ) {
+        $log->info("!!! user->requested_items !!!");
+        return $self->ils->userholds( $self->userid, $config );
+    }
+    return 0;
+    
 }
 
 1;
