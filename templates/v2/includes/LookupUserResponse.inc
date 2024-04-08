@@ -52,7 +52,7 @@ RequestedItem
 [%- IF requested_items -%]
   <RequestedItemsCount>
     <CirculationStatus/>
-    <RequestedItemsCountValue>[% requested_items.itemsCount | xml %]</RequestedItemsCountValue>
+    <RequestedItemCountValue>[% requested_items.itemsCount | xml %]</RequestedItemCountValue>
   </RequestedItemsCount>
   [%- FOREACH item IN requested_items.items -%]
   <RequestedItem>
