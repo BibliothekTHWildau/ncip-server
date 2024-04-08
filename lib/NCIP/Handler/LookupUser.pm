@@ -148,18 +148,21 @@ sub handle {
         if ( $user->is_valid() ) {
             my $elements = $self->get_user_elements($xmldoc);
 
+            # todo remove log
             my $log = Log::Log4perl->get_logger("NCIP"); 
-            my $loaned_items;
-            my $requested_items; 
-            if ($self->get_items_desired($xmldoc,'LoanedItemsDesired')){
-              $log->info( "!!! loanedItemsDesired !!!");
-              $loaned_items = $user->items($config,'loaned');
-            }
 
-            if ($self->get_items_desired($xmldoc,'RequestedItemsDesired')){
-              $log->info( "!!! RequestedItemsDesired !!!");
-              $requested_items = $user->items($config,'requested');
-            }
+            my $loaned_items    = $user->items($config,'loaned') if ($self->get_items_desired($xmldoc,'LoanedItemsDesired'));
+            my $requested_items = $user->items($config,'requested') if ($self->get_items_desired($xmldoc,'RequestedItemsDesired'));
+            
+            #if ($self->get_items_desired($xmldoc,'LoanedItemsDesired')){
+            #  $log->info( "!!! loanedItemsDesired !!!");
+            #  $loaned_items = $user->items($config,'loaned');
+            #}
+
+            #if ($self->get_items_desired($xmldoc,'RequestedItemsDesired')){
+            #  $log->info( "!!! RequestedItemsDesired !!!");
+            #  $requested_items = $user->items($config,'requested');
+            #}
             
             #todo
             #my $UserFiscalAccount = $self->get_loaned_items_desired($xmldoc);

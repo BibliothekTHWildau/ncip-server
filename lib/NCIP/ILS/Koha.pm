@@ -147,17 +147,33 @@ sub userholds {
     my $holds = $patron->holds;
     use Data::Dumper;
 
-    my $item;
+    # expirationdate when order
+    # found != undef when order f.e. 'w'
+
+    
     my @items;
-    my $count = 0;
+    my $countOrder = 0;
+    my $countPreBook = 0;
     while ( my $c = $holds->next ) {
-        $count++;
-        $log->info( Dumper($c) );
+        my $item;    
+        
+        $log->info( Dumper($c->_result->{_column_data}) );
+        #$log->info( Dumper($c->) );
         $item->{barcode}        = $c->biblionumber;
         $item->{title}          = $c->biblio->title;
         $item->{BibliographicId} = $c->biblionumber;
         $item->{DatePlaced} = $c->reservedate;
-        $item->{PickupLocation} = $c->branchcode; # desk_id?;
+        $item->{LocationNameValue} = $c->branchcode;
+        $item->{PickupLocation} = $c->desk_id; # desk_id?;
+        
+        if ($c->found && $c->expirationdate){
+          $item->{RequestType} = 'Order'; 
+          $item->{PickupExpiryDate} = $c->expirationdate;
+          $countOrder++;
+        } else {
+          $item->{RequestType} = 'PreBook';
+          $countPreBook++;
+        }
         # todo fields
         #<xs:element ref="RequestType"/>
         #<xs:element ref="RequestStatusType"/>
@@ -170,13 +186,17 @@ sub userholds {
         #<xs:element ref="MediumType" minOccurs="0"/>
         #<xs:element ref="Ext" minOccurs="0"/>
         
-        push @items, $item;
+        push (@items, $item);
     }
+
+    #$log->info( Dumper(@items) );
 
     my $result = {
         items      => \@items,
-        itemsCount => $count,
+        itemsCount => $countOrder.":".$countPreBook,
     };
+
+    
 
     return $result;
 
@@ -202,11 +222,11 @@ sub useritems {
     #todo remove
     use Data::Dumper;
 
-    my $item;
     my @items;
     my $count = 0;
     while ( my $c = $checkouts->next ) {
         $count++;
+        my $item;    
         $item->{barcode}        = $c->item->barcode;
         $item->{date_due}       = $c->date_due;
         $item->{itype}          = $c->item->itype;

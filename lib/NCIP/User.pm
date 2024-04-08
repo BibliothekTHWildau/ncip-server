@@ -50,6 +50,7 @@ sub authenticate {
 sub items {
     my ( $self, $config, $type ) = @_;
 
+    # todo remove log
     my $log = Log::Log4perl->get_logger("NCIP");
 
     if ( $type eq 'loaned' ) {

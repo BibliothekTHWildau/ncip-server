@@ -64,8 +64,10 @@ RequestedItem
       <BibliographicId>[% item.BibliographicId | xml %]</BibliographicId>
       <MediumType>[% item.itype | xml %]</MediumType>
       <DatePlaced>[% item.DatePlaced | xml %]</DatePlaced>
+      <PickupExpiryDate>[% item.PickupExpiryDate | xml %]</PickupExpiryDate>
+      <RequestType>[% item.RequestType | xml %]</RequestType>
       <Ext>
-         <LocationNameValue></LocationNameValue> 
+         <LocationNameValue>[% item.LocationNameValue | xml %]</LocationNameValue> 
          <PickupLocation>[% item.PickupLocation | xml %]</PickupLocation> 
          <LocationWithinBuilding>[% item.itemcallnumber | xml %]</LocationWithinBuilding> 
          <CirculationStatus></CirculationStatus>
