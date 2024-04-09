@@ -145,6 +145,7 @@ sub user_fiscal_account {
     my $log = Log::Log4perl->get_logger("NCIP");
 
     my $balance = $patron->account->balance;
+
     my $currency = Koha::Acquisition::Currencies->get_active->isocode;
     if ($currency eq ''){
       $currency = Koha::Acquisition::Currencies->get_active->symbol;
@@ -155,7 +156,7 @@ sub user_fiscal_account {
 
     while ( my $debit = $debits->next ) {
 
-        #$log->info( Dumper( $debit->_result->{_column_data} ) );
+        $log->info( Dumper( $debit->_result->{_column_data} ) );
 
         my $barcode = $debit->itemnumber;
         if ($debit->itemnumber){
@@ -165,17 +166,18 @@ sub user_fiscal_account {
 
         push @account_details,
           {
-            MonetaryValue                => sprintf "%.02f", $debit->amountoutstanding,
+            MonetaryValue                => $debit->amountoutstanding * 100,
             AccrualDate                  => $debit->date,
             FiscalTransactionDescription => $debit->description,
             ItemIdentifierValue          => $barcode
           };
     }
 
+    #sprintf "%02f",
     my $result = {
         account_balance => {
             CurrencyCode  => $currency,
-            MonetaryValue => sprintf "%.02f", $balance
+            MonetaryValue => $balance * 100
         },
         account_details => \@account_details,
     };
