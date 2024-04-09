@@ -287,7 +287,7 @@ sub useritems {
         $item->{renewals_count} = $c->renewals_count;
         $item->{issue_date}     = $c->issuedate;
         $item->{itemcallnumber} = $c->item->itemcallnumber;
-        $item->{BibliographicRecordIdentifier} = $c->biblionumber;
+        $item->{BibliographicRecordIdentifier} = $c->item->biblionumber;
 
         #push @barcodes, { barcode => $c->item->barcode };
         #$log->info( Dumper($c->item));
