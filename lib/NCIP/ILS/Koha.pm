@@ -214,7 +214,7 @@ sub userholds {
         #$log->info( Dumper($c->) );
         $item->{barcode}           = $c->biblionumber;
         $item->{title}             = $c->biblio->title;
-        $item->{BibliographicId}   = $c->biblionumber;
+        $item->{BibliographicRecordIdentifier}   = $c->biblionumber;
         $item->{DatePlaced}        = $c->reservedate;
         $item->{LocationNameValue} = $c->branchcode;
         $item->{PickupLocation}    = $c->desk_id;         # desk_id?;
@@ -287,6 +287,7 @@ sub useritems {
         $item->{renewals_count} = $c->renewals_count;
         $item->{issue_date}     = $c->issuedate;
         $item->{itemcallnumber} = $c->item->itemcallnumber;
+        $item->{BibliographicRecordIdentifier} = $c->biblionumber;
 
         #push @barcodes, { barcode => $c->item->barcode };
         #$log->info( Dumper($c->item));

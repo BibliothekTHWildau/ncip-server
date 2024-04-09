@@ -82,6 +82,7 @@ RequestedItem
       <Title>[% item.title | xml %]</Title>
       <MediumType>[% item.itype | xml %]</MediumType>
       <Ext>
+         <BibliographicRecordIdentifier>[% item.BibliographicRecordIdentifier | xml %]</BibliographicRecordIdentifier>
          <LocationNameValue>Halle 10 (Hochschulbibliothek)</LocationNameValue> 
          <PickupLocation>Theke</PickupLocation> 
          <Author></Author> 
@@ -110,6 +111,7 @@ RequestedItem
       <PickupExpiryDate>[% item.PickupExpiryDate | xml %]</PickupExpiryDate>
       <RequestType>[% item.RequestType | xml %]</RequestType>
       <Ext>
+         <BibliographicRecordIdentifier>[% item.BibliographicRecordIdentifier | xml %]</BibliographicRecordIdentifier>
          <LocationNameValue>[% item.LocationNameValue | xml %]</LocationNameValue> 
          <PickupLocation>[% item.PickupLocation | xml %]</PickupLocation> 
          <LocationWithinBuilding>[% item.itemcallnumber | xml %]</LocationWithinBuilding> 
