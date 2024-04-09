@@ -226,6 +226,7 @@ sub userholds {
         }
         else {
             $item->{RequestType} = 'PreBook';
+            $item->{HoldQueuePosition} = $c->priority;
             $countPreBook++;
         }
 

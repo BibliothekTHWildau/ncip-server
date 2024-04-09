@@ -110,6 +110,7 @@ RequestedItem
       <DatePlaced>[% item.DatePlaced | xml %]</DatePlaced>
       <PickupExpiryDate>[% item.PickupExpiryDate | xml %]</PickupExpiryDate>
       <RequestType>[% item.RequestType | xml %]</RequestType>
+      <HoldQueuePosition>[% item.HoldQueuePosition | xml %]</HoldQueuePosition>
       <Ext>
          <BibliographicRecordIdentifier>[% item.BibliographicRecordIdentifier | xml %]</BibliographicRecordIdentifier>
          <LocationNameValue>[% item.LocationNameValue | xml %]</LocationNameValue> 
