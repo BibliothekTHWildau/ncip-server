@@ -132,6 +132,57 @@ sub userdata {
     return $patron_hashref;
 }
 
+sub user_fiscal_account {
+    my $self   = shift;
+    my $userid = shift;
+    my $config = shift;
+
+    my $patron = $self->find_patron( { userid => $userid, config => $config } );
+
+    return unless $patron;
+
+    # todo remove
+    my $log = Log::Log4perl->get_logger("NCIP");
+
+    my $balance = $patron->account->balance;
+    my $currency = Koha::Acquisition::Currencies->get_active->isocode;
+    if ($currency eq ''){
+      $currency = Koha::Acquisition::Currencies->get_active->symbol;
+    }
+
+    my $debits = $patron->account->outstanding_debits;
+    my @account_details;
+
+    while ( my $debit = $debits->next ) {
+
+        #$log->info( Dumper( $debit->_result->{_column_data} ) );
+
+        my $barcode = $debit->itemnumber;
+        if ($debit->itemnumber){
+          #$log->info( "querying item!!! $barcode" );
+          $barcode = Koha::Items->find( { itemnumber => $debit->itemnumber } )->barcode;
+        }
+
+        push @account_details,
+          {
+            MonetaryValue                => sprintf "%.02f", $debit->amountoutstanding,
+            AccrualDate                  => $debit->date,
+            FiscalTransactionDescription => $debit->description,
+            ItemIdentifierValue          => $barcode
+          };
+    }
+
+    my $result = {
+        account_balance => {
+            CurrencyCode  => $currency,
+            MonetaryValue => sprintf "%.02f", $balance
+        },
+        account_details => \@account_details,
+    };
+
+    return $result;
+}
+
 sub userholds {
     my $self   = shift;
     my $userid = shift;
@@ -150,30 +201,32 @@ sub userholds {
     # expirationdate when order
     # found != undef when order f.e. 'w'
 
-    
     my @items;
-    my $countOrder = 0;
+    my $countOrder   = 0;
     my $countPreBook = 0;
     while ( my $c = $holds->next ) {
-        my $item;    
-        
-        $log->info( Dumper($c->_result->{_column_data}) );
+        my $item;
+
+        $log->info( Dumper( $c->_result->{_column_data} ) );
+
         #$log->info( Dumper($c->) );
-        $item->{barcode}        = $c->biblionumber;
-        $item->{title}          = $c->biblio->title;
-        $item->{BibliographicId} = $c->biblionumber;
-        $item->{DatePlaced} = $c->reservedate;
+        $item->{barcode}           = $c->biblionumber;
+        $item->{title}             = $c->biblio->title;
+        $item->{BibliographicId}   = $c->biblionumber;
+        $item->{DatePlaced}        = $c->reservedate;
         $item->{LocationNameValue} = $c->branchcode;
-        $item->{PickupLocation} = $c->desk_id; # desk_id?;
-        
-        if ($c->found && $c->expirationdate){
-          $item->{RequestType} = 'Order'; 
-          $item->{PickupExpiryDate} = $c->expirationdate;
-          $countOrder++;
-        } else {
-          $item->{RequestType} = 'PreBook';
-          $countPreBook++;
+        $item->{PickupLocation}    = $c->desk_id;         # desk_id?;
+
+        if ( $c->found && $c->expirationdate ) {
+            $item->{RequestType}      = 'Order';
+            $item->{PickupExpiryDate} = $c->expirationdate;
+            $countOrder++;
         }
+        else {
+            $item->{RequestType} = 'PreBook';
+            $countPreBook++;
+        }
+
         # todo fields
         #<xs:element ref="RequestType"/>
         #<xs:element ref="RequestStatusType"/>
@@ -185,18 +238,16 @@ sub userholds {
         #<xs:element ref="Title" minOccurs="0"/>
         #<xs:element ref="MediumType" minOccurs="0"/>
         #<xs:element ref="Ext" minOccurs="0"/>
-        
-        push (@items, $item);
+
+        push( @items, $item );
     }
 
     #$log->info( Dumper(@items) );
 
     my $result = {
         items      => \@items,
-        itemsCount => $countOrder.":".$countPreBook,
+        itemsCount => $countOrder . ":" . $countPreBook,
     };
-
-    
 
     return $result;
 
@@ -212,13 +263,13 @@ sub useritems {
 
     #todo remove
     my $log = Log::Log4perl->get_logger("NCIP");
-    
+
     return unless $patron;
 
     # used in sip2 patronAccount
     #my $checkouts = $patron->pending_checkouts;
     my $checkouts = $patron->checkouts;
-    
+
     #todo remove
     use Data::Dumper;
 
@@ -226,7 +277,7 @@ sub useritems {
     my $count = 0;
     while ( my $c = $checkouts->next ) {
         $count++;
-        my $item;    
+        my $item;
         $item->{barcode}        = $c->item->barcode;
         $item->{date_due}       = $c->date_due;
         $item->{itype}          = $c->item->itype;

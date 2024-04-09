@@ -65,4 +65,9 @@ sub items {
     
 }
 
+sub fiscal_account {
+  my ( $self, $config ) = @_;
+  return $self->ils->user_fiscal_account( $self->userid, $config );
+}
+
 1;

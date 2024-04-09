@@ -124,15 +124,17 @@ sub get_user_elements {
     return \@elements;
 }
 
-=head2 get_items_desired($xml,$type)
+=head2 get_desired_fields($xml,$type)
 
-    my $loanedItems = get_loaned_items_desired( $xml );
-
-    When passed an xml dom, this will find the user elements and pass convert them into an arrayref
+    Used to find which extended desired user fields should be in response
+    Possible desired fields are:
+    - LoanedItemsDesired
+    - RequestedItemsDesired
+    - UserFiscalAccountDesired
 
 =cut
 
-sub get_items_desired {
+sub get_desired_fields {
     my ( $self, $xmldoc, $type ) = @_;
 
     my $xpc = $self->xpc();

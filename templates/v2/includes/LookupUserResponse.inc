@@ -18,6 +18,51 @@ LoanedItem
 RequestedItemsCount
 RequestedItem
 -%]
+
+[%- IF fiscal_account -%]
+<UserFiscalAccount>
+      <AccountBalance>
+         <CurrencyCode>[% fiscal_account.account_balance.CurrencyCode %]</CurrencyCode>
+         <MonetaryValue>[% fiscal_account.account_balance.MonetaryValue %]</MonetaryValue>
+         <Ext>
+            <MonetaryValue>2</MonetaryValue>
+         </Ext>
+      </AccountBalance>
+      [%- FOREACH detail IN fiscal_account.account_details -%]
+      <AccountDetails>
+         <AccrualDate>[% detail.AccrualDate | xml %]</AccrualDate>
+         <FiscalTransactionInformation>
+            <FiscalActionType/>
+            <RelatedFiscalTransactionReferenceId>
+               <AgencyId/>
+               <FiscalTransactionIdentifierValue/>
+            </RelatedFiscalTransactionReferenceId>
+            <FiscalTransactionType/>
+            <ValidFromDate>[% detail.AccrualDate | xml %]</ValidFromDate>
+            <ValidToDate/>
+            <Amount>
+               <CurrencyCode>[% fiscal_account.account_balance.CurrencyCode %]</CurrencyCode>
+               <MonetaryValue>[% detail.MonetaryValue %]</MonetaryValue>
+            </Amount>
+            <FiscalTransactionDescription>[% detail.FiscalTransactionDescription | xml %]</FiscalTransactionDescription>
+            <ItemDetails>
+               <ItemId>
+                  <ItemIdentifierValue>[% detail.ItemIdentifierValue | xml %]</ItemIdentifierValue>
+               </ItemId>
+               <BibliographicDescription>
+                  <Author/>
+                  <Title/>
+                  <Ext>
+                     <LocationWithinBuilding/>
+                  </Ext>
+               </BibliographicDescription>
+            </ItemDetails>
+         </FiscalTransactionInformation>
+      </AccountDetails>
+      [%- END -%]
+      </UserFiscalAccount>
+[%- END -%]
+
 [%- IF loaned_items -%]
   <LoanedItemsCount>
     <CirculationStatus/>
@@ -59,9 +104,7 @@ RequestedItem
       <ItemId>
          <ItemIdentifierValue>[% item.barcode | xml %]</ItemIdentifierValue> 
       </ItemId>
-      <ReminderLevel>0</ReminderLevel>
       <Title>[% item.title | xml %]</Title>
-      <BibliographicId>[% item.BibliographicId | xml %]</BibliographicId>
       <MediumType>[% item.itype | xml %]</MediumType>
       <DatePlaced>[% item.DatePlaced | xml %]</DatePlaced>
       <PickupExpiryDate>[% item.PickupExpiryDate | xml %]</PickupExpiryDate>

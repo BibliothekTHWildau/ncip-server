@@ -151,21 +151,13 @@ sub handle {
             # todo remove log
             my $log = Log::Log4perl->get_logger("NCIP"); 
 
-            my $loaned_items    = $user->items($config,'loaned') if ($self->get_items_desired($xmldoc,'LoanedItemsDesired'));
-            my $requested_items = $user->items($config,'requested') if ($self->get_items_desired($xmldoc,'RequestedItemsDesired'));
-            
-            #if ($self->get_items_desired($xmldoc,'LoanedItemsDesired')){
-            #  $log->info( "!!! loanedItemsDesired !!!");
-            #  $loaned_items = $user->items($config,'loaned');
-            #}
-
-            #if ($self->get_items_desired($xmldoc,'RequestedItemsDesired')){
-            #  $log->info( "!!! RequestedItemsDesired !!!");
-            #  $requested_items = $user->items($config,'requested');
-            #}
+            # checked out items and holds / reserves
+            my $loaned_items    = $user->items($config,'loaned') if ($self->get_desired_fields($xmldoc,'LoanedItemsDesired'));
+            my $requested_items = $user->items($config,'requested') if ($self->get_desired_fields($xmldoc,'RequestedItemsDesired'));
             
             #todo
-            #my $UserFiscalAccount = $self->get_loaned_items_desired($xmldoc);
+            my $fiscal_account = $user->fiscal_account($config) if ($self->get_desired_fields($xmldoc,'UserFiscalAccountDesired'));
+            
             return $self->render_output(
                 'response.tt',
                 {
@@ -175,6 +167,7 @@ sub handle {
                     elements     => $elements,
                     loaned_items => $loaned_items,
                     requested_items => $requested_items,
+                    fiscal_account => $fiscal_account,
                     user         => $user,
                     user_id      => $user_id,
                     config       => $config,
