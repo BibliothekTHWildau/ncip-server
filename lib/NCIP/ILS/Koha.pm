@@ -714,6 +714,8 @@ sub renew {
     #my ( $ok, $error ) = CanBookBeRenewed( $patron->borrowernumber, $item->itemnumber );
     my ( $ok, $error ) = CanBookBeRenewed( $patron, $item->checkout );
 
+    $log->info( "ok $ok error $error" );
+
     $error //= q{};
 
     return {
@@ -746,6 +748,21 @@ sub renew {
       }
       if $error eq 'on_reserve';
 
+      return {
+        success  => 0,
+        problems => [
+            {
+                problem_type =>
+                  'Renewal Not Allowed - Too many checkouts',
+                problem_detail =>
+                  'Item may not be renewed because user has too many checkouts.',
+                problem_element => 'UniqueItemIdentifier',
+                problem_value   => $barcode,
+            }
+        ]
+      }
+      if $error eq 'too_many';
+
     return {
         success  => 0,
         problems => [
@@ -759,7 +776,7 @@ sub renew {
       }
       if $error;    # Generic message for all other reasons
 
-    my $datedue = AddRenewal( { $patron->borrowernumber, $item->itemnumber } );
+    my $datedue = AddRenewal( { borrowernumber => $patron->borrowernumber, itemnumber => $item->itemnumber } );
 
     
 
