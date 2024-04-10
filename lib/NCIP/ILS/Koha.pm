@@ -274,20 +274,14 @@ sub useritems {
     my $checkouts = $patron->checkouts;
 
     #todo remove
-    use Data::Dumper;
-
-    # reminderlevel
-    my $debits = $patron->account->debits(); #debit_offsets by item id
-    while ( my $debit = $debits->next ) {
-
-        $log->info( Dumper( $debit->_result->{_column_data} ) );
-    }
+    use Data::Dumper;   
 
     my @items;
     my $count = 0;
     while ( my $c = $checkouts->next ) {
         $count++;
         my $item;
+        #$log->info( Dumper($c->_result->{_column_data}));
         $item->{barcode}        = $c->item->barcode;
         $item->{date_due}       = $c->date_due;
         $item->{itype}          = $c->item->itype;
@@ -296,8 +290,23 @@ sub useritems {
         $item->{issue_date}     = $c->issuedate;
         $item->{itemcallnumber} = $c->item->itemcallnumber;
         $item->{BibliographicRecordIdentifier} = $c->item->biblionumber;
-        # todo reminderlevel
-        #$item->{ReminderLevel} = $patron->account->debits($c->item->itemnumber);
+        
+        # reminderlevel and amountoutstanding
+        $item->{MonetaryValue} = 0;
+        my $reminder_level = 0;
+        
+        my $lines = $c->account_lines();
+        
+        while ( my $line = $lines->next ) {
+          #$log->info( Dumper($line->_result->{_column_data}));
+          if ($line->debit_type_code eq 'OVERDUE'){
+            $reminder_level++;
+            $item->{MonetaryValue} = $line->amountoutstanding if($line->amountoutstanding > $item->{MonetaryValue});
+          }
+        }
+        # by 100 as vufind handles decimals
+        $item->{MonetaryValue} *= 100;
+        $item->{ReminderLevel} = $reminder_level;
 
         #push @barcodes, { barcode => $c->item->barcode };
         #$log->info( Dumper($c->item));

@@ -73,11 +73,11 @@ RequestedItem
       <ItemId>
          <ItemIdentifierValue>[% item.barcode | xml %]</ItemIdentifierValue> 
       </ItemId>
-      <ReminderLevel>0</ReminderLevel>
+      <ReminderLevel>[% item.ReminderLevel %]</ReminderLevel>
       <DateDue>[% item.date_due | xml %]</DateDue> 
       <Amount>
          <CurrencyCode/>
-         <MonetaryValue>0</MonetaryValue>
+         <MonetaryValue>[% item.MonetaryValue | xml %]</MonetaryValue>
       </Amount>
       <Title>[% item.title | xml %]</Title>
       <MediumType>[% item.itype | xml %]</MediumType>
