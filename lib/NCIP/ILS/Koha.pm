@@ -678,6 +678,9 @@ sub renew {
     my $userid  = shift;
     my $config  = shift;
 
+    #todo remove
+    my $log = Log::Log4perl->get_logger("NCIP");
+
     my $patron = $self->find_patron( { userid => $userid, config => $config } );
     return {
         success  => 0,
@@ -691,6 +694,7 @@ sub renew {
         ]
       }
       unless $patron;
+
 
     my $item = Koha::Items->find( { barcode => $barcode } );
     return {
@@ -706,8 +710,11 @@ sub renew {
       }
       unless $item;
 
-    my ( $ok, $error ) =
-      CanBookBeRenewed( $patron->borrowernumber, $item->itemnumber );
+
+    #my ( $ok, $error ) = CanBookBeRenewed( $patron->borrowernumber, $item->itemnumber );
+    my ( $ok, $error ) = CanBookBeRenewed( $patron, $item->checkout );
+
+    $log->info( "CanBookBeRenewed ok $ok");
 
     $error //= q{};
 
