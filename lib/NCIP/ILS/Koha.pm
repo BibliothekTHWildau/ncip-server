@@ -276,6 +276,13 @@ sub useritems {
     #todo remove
     use Data::Dumper;
 
+    # reminderlevel
+    my $debits = $patron->account->debits(); #debit_offsets by item id
+    while ( my $debit = $debits->next ) {
+
+        $log->info( Dumper( $debit->_result->{_column_data} ) );
+    }
+
     my @items;
     my $count = 0;
     while ( my $c = $checkouts->next ) {
@@ -289,6 +296,8 @@ sub useritems {
         $item->{issue_date}     = $c->issuedate;
         $item->{itemcallnumber} = $c->item->itemcallnumber;
         $item->{BibliographicRecordIdentifier} = $c->item->biblionumber;
+        # todo reminderlevel
+        #$item->{ReminderLevel} = $patron->account->debits($c->item->itemnumber);
 
         #push @barcodes, { barcode => $c->item->barcode };
         #$log->info( Dumper($c->item));
