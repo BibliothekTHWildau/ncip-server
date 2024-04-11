@@ -50,15 +50,12 @@ sub authenticate {
 sub items {
     my ( $self, $config, $type ) = @_;
 
-    # todo remove log
-    my $log = Log::Log4perl->get_logger("NCIP");
-
     if ( $type eq 'loaned' ) {
-        $log->info("!!! user->loaned_items !!!");
+        
         return $self->ils->useritems( $self->userid, $config );
     }
     elsif ( $type eq 'requested' ) {
-        $log->info("!!! user->requested_items !!!");
+
         return $self->ils->userholds( $self->userid, $config );
     }
     return 0;
@@ -67,7 +64,14 @@ sub items {
 
 sub fiscal_account {
   my ( $self, $config ) = @_;
+
   return $self->ils->user_fiscal_account( $self->userid, $config );
+}
+
+sub set_password {
+  my ( $self, $new_password, $config) = @_;
+
+  return $self->ils->set_user_password( $self->userid,$new_password, $config );
 }
 
 1;

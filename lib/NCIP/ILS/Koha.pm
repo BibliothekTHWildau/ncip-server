@@ -132,6 +132,48 @@ sub userdata {
     return $patron_hashref;
 }
 
+sub set_user_password {
+    my $self   = shift;
+    my $userid = shift;
+    my $new_password = shift;
+    my $config = shift;
+
+    my $patron = $self->find_patron( { userid => $userid, config => $config } );
+   
+    return unless $patron;
+
+    #todo remove
+    my $log = Log::Log4perl->get_logger("NCIP");
+    #$log->debug( "new password to set: $new_password" );
+
+    my $success = 0;
+    my @problems;
+
+    try {
+      $patron->set_password({ password => $new_password });
+      $success = 1;
+    }
+    catch {
+      $log->error( $_ );
+      push(
+            @problems,
+            {
+                problem_type    => 'Error',
+                problem_element => 'PIN',
+                problem_value   => '***',
+                problem_detail  => $_,
+            }
+        );
+    };   
+
+    my $result = {
+        success   => $success,
+        problems  => \@problems,
+    };
+
+    return $result;
+}
+
 sub user_fiscal_account {
     my $self   = shift;
     my $userid = shift;
