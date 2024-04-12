@@ -340,7 +340,8 @@ sub useritems {
         my $lines = $c->account_lines();
         
         while ( my $line = $lines->next ) {
-          #$log->info( Dumper($line->_result->{_column_data}));
+          $log->info( "Account line for item ". $c->item->barcode);
+          $log->info( Dumper($line->_result->{_column_data}));
           if ($line->debit_type_code eq 'OVERDUE'){
             $reminder_level++;
             $item->{MonetaryValue} = $line->amountoutstanding if($line->amountoutstanding > $item->{MonetaryValue});
