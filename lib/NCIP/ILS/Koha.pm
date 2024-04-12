@@ -198,11 +198,11 @@ sub user_fiscal_account {
 
     while ( my $debit = $debits->next ) {
 
-        $log->info( Dumper( $debit->_result->{_column_data} ) );
+        $log->debug( Dumper( $debit->_result->{_column_data} ) );
 
         my $barcode = $debit->itemnumber;
         if ($debit->itemnumber){
-          #$log->info( "querying item!!! $barcode" );
+          #$log->debug( "querying item!!! $barcode" );
           $barcode = Koha::Items->find( { itemnumber => $debit->itemnumber } )->barcode;
         }
 
@@ -251,9 +251,9 @@ sub userholds {
     while ( my $c = $holds->next ) {
         my $item;
 
-        $log->info( Dumper( $c->_result->{_column_data} ) );
+        $log->debug( Dumper( $c->_result->{_column_data} ) );
 
-        #$log->info( Dumper($c->) );
+        #$log->debug( Dumper($c->) );
         $item->{barcode}           = $c->biblionumber;
         $item->{title}             = $c->biblio->title;
         $item->{BibliographicRecordIdentifier}   = $c->biblionumber;
@@ -287,7 +287,7 @@ sub userholds {
         push( @items, $item );
     }
 
-    #$log->info( Dumper(@items) );
+    #$log->debug( Dumper(@items) );
 
     my $result = {
         items      => \@items,
@@ -323,7 +323,7 @@ sub useritems {
     while ( my $c = $checkouts->next ) {
         $count++;
         my $item;
-        #$log->info( Dumper($c->_result->{_column_data}));
+        #$log->debug( Dumper($c->_result->{_column_data}));
         $item->{barcode}        = $c->item->barcode;
         $item->{date_due}       = $c->date_due;
         $item->{itype}          = $c->item->itype;
@@ -340,8 +340,8 @@ sub useritems {
         my $lines = $c->account_lines();
         
         while ( my $line = $lines->next ) {
-          $log->info( "Account line for item ". $c->item->barcode);
-          $log->info( Dumper($line->_result->{_column_data}));
+          $log->debug( "Account line for item ". $c->item->barcode);
+          $log->debug( Dumper($line->_result->{_column_data}));
           if ($line->debit_type_code eq 'OVERDUE'){
             $reminder_level++;
             $item->{MonetaryValue} = $line->amountoutstanding if($line->amountoutstanding > $item->{MonetaryValue});
@@ -352,13 +352,13 @@ sub useritems {
         $item->{ReminderLevel} = $reminder_level;
 
         #push @barcodes, { barcode => $c->item->barcode };
-        #$log->info( Dumper($c->item));
-        #$log->info( $c->borrowernumber );
-        #$log->info( $c->item->barcode );
-        #$log->info( $c->date_due ); #duedate
-        #$log->info( $c->item->onloan ); #duedate
-        #$log->info( $c->item->itype ); #itemtype
-        #$log->info( $c->item->biblio->title ); #itemtype
+        #$log->debug( Dumper($c->item));
+        #$log->debug( $c->borrowernumber );
+        #$log->debug( $c->item->barcode );
+        #$log->debug( $c->date_due ); #duedate
+        #$log->debug( $c->item->onloan ); #duedate
+        #$log->debug( $c->item->itype ); #itemtype
+        #$log->debug( $c->item->biblio->title ); #itemtype
         push @items, $item;
     }
 
@@ -757,7 +757,7 @@ sub renew {
     #my ( $ok, $error ) = CanBookBeRenewed( $patron->borrowernumber, $item->itemnumber );
     my ( $ok, $error ) = CanBookBeRenewed( $patron, $item->checkout );
 
-    $log->info( "ok $ok error $error" );
+    $log->debug( "ok $ok error $error" );
 
     $error //= q{};
 
