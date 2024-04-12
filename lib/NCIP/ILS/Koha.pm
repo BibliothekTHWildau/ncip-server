@@ -1087,12 +1087,27 @@ sub request {
 }
 
 sub cancelrequest {
-    my $self       = shift;
-    my $request_id = shift;
+    my $self         = shift;
+    my $userid       = shift;
+    my $request_id   = shift;
+    my $request_type = shift || 'BibliographicId';
 
     my $success = 0;
+    my $hold;
 
-    my $hold = Koha::Holds->find($request_id);
+    # cancel against patron account 
+    #my $patron = $self->find_patron( { userid => $userid, config => $config } );
+    #return unless $patron;
+
+    if ($request_type eq 'BibliographicId'){
+      $hold = Koha::Holds->find({ 'biblionumber' => $request_id });
+      #$hold = Koha::Holds->find( { borrowernumber => $patron->borrowernumber, biblionumber => $request_id } );
+    } else {
+      # todo
+      # find itemid by barcode
+      # find hold by itemid
+    }
+    
     if ($hold) {
         $success = $hold->cancel();
     }
