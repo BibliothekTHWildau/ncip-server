@@ -1092,17 +1092,29 @@ sub cancelrequest {
     my $userid       = shift;
     my $request_id   = shift;
     my $request_type = shift || 'BibliographicId';
+    my $config       = shift;
 
     my $success = 0;
     my $hold;
 
     # cancel against patron account 
-    #my $patron = $self->find_patron( { userid => $userid, config => $config } );
-    #return unless $patron;
+    my $patron = $self->find_patron( { userid => $userid, config => $config } );
+    return {
+        success    => $success,
+        request_id => $request_id,
+    } unless $patron;
+
+    #todo remove
+    my $log = Log::Log4perl->get_logger("NCIP");
+    #
 
     if ($request_type eq 'BibliographicId'){
-      $hold = Koha::Holds->find({ 'biblionumber' => $request_id });
-      #$hold = Koha::Holds->find( { borrowernumber => $patron->borrowernumber, biblionumber => $request_id } );
+      $log->debug( "holds for BibliographicId: ". $request_id);
+      #$hold = Koha::Holds->find({ 'biblionumber' => $request_id });
+      $hold = Koha::Holds->find( { borrowernumber => $patron->borrowernumber, biblionumber => $request_id } );
+    } elsif ($request_type eq 'Loan'){ 
+      $log->debug( "holds for Hold id: ". $request_id);
+      $hold = Koha::Holds->find( $request_id );
     } else {
       # todo
       # find itemid by barcode

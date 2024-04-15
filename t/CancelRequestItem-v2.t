@@ -130,7 +130,7 @@ subtest 'Test CancelRequestItem with valid user and invalid item' => sub {
 
     is(
         $dom->{NCIPMessage}->{CancelRequestItemResponse}->{Problem}->{ProblemType}->{text},
-        'Unknown Request',
+        'No hold found',
         'Got correct problem type'
     );
     is( $dom->{NCIPMessage}->{CancelRequestItemResponse}->{Problem}->{ProblemElement}->{text},

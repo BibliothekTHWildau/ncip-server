@@ -24,21 +24,24 @@ sub handle {
     my $self   = shift;
     my $xmldoc = shift;
 
-    #my $config = $self->{config}->{koha};
+    my $config = $self->{config}->{koha};
 
     my $ns = $self->{ncip_version} == 1 ? q{} : q{};
 
     if ($xmldoc) {
         my $root = $xmldoc->documentElement();
         my $xpc  = $self->xpc();
-        my $userid =
-          $xpc->findnodes( '//' . $ns . 'UserIdentifierValue', $root );
-        my $requestid =
-          $xpc->findnodes( '//' . $ns . 'RequestIdentifierValue', $root )->[0]
-          ->textContent;
-        my $requesttype =
-          $xpc->findnodes( '//' . $ns . 'RequestType', $root )->[0]
-          ->textContent;
+        
+        my $requestid   = $xpc->findnodes( '//' . $ns . 'RequestIdentifierValue', $root );
+        my $requesttype = $xpc->findnodes( '//' . $ns . 'RequestType', $root );
+        my $userid      = $xpc->findnodes( '//' . $ns . 'UserIdentifierValue', $root );
+        
+        #todo remove
+        my $log = Log::Log4perl->get_logger("NCIP");
+        use Data::Dumper;
+        #$log->info(Dumper($root->textContent));
+        #$log->info(Dumper($xpc));
+        
 
         unless ($requestid) {
             return $self->render_output(
@@ -56,6 +59,9 @@ sub handle {
                 }
             );
         }
+
+        $requestid = $requestid->[0]->textContent;
+        $requesttype = $requesttype->[0]->textContent if ($requesttype);
 
         unless ($userid) {
 
@@ -88,7 +94,7 @@ sub handle {
         }
 
         my $data =
-          $self->ils->cancelrequest( $userid, $requestid, $requesttype );
+          $self->ils->cancelrequest( $userid, $requestid, $requesttype, $config );
 
         if ( $data->{success} ) {
             return $self->render_output(
