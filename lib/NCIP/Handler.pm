@@ -94,6 +94,8 @@ sub xpc {
     my $self = shift;
     my $xpc  = XML::LibXML::XPathContext->new;
     $xpc->registerNs( 'ns', $self->namespace() );
+    #$xpc->registerNs( 'ns' => 'http://www.niso.org/2008/ncip' );
+
     return $xpc;
 }
 
@@ -233,4 +235,56 @@ sub render_output {
       || die $template->error();
     return $output;
 }
+
+sub get_userid {
+
+    my ( $self, $xmldoc ) = @_;
+
+    my $root = $xmldoc->documentElement();
+    my $xpc  = $self->xpc();
+    my $ns = 'ns:';#q{};
+
+    my $userid = $xpc->findnodes( '//*[local-name()="UserIdentifierValue"]', $root );
+    $userid = $userid->[0]->textContent() if $userid;
+    my $pin;
+
+    unless ($userid) {
+
+        # We may get a password, username combo instead of userid
+        # Need to deal with that also
+        my $root = $xmldoc->documentElement();
+        my @authtypes =
+          $xpc->findnodes( '//*[local-name()="AuthenticationInput"]', $root );
+
+        foreach my $node (@authtypes) {
+
+            my $class =
+              $xpc->findnodes( './*[local-name()="AuthenticationInputType"]/Value',
+                $node );
+            $class ||=
+              $xpc->findnodes( './*[local-name()="AuthenticationInputType"]', $node );
+
+            my $value =
+              $xpc->findnodes( './*[local-name()="AuthenticationInputData"]/Value',
+                $node );
+            $value ||=
+              $xpc->findnodes( './*[local-name()="AuthenticationInputData"]', $node );
+
+            if (   $class->[0]->textContent eq 'UserId'
+                || $class->[0]->textContent eq 'Barcode Id' )
+            {
+                $userid = $value->[0]->textContent;
+            }
+            elsif ($class->[0]->textContent eq 'Password'
+                || $class->[0]->textContent eq 'PIN' )
+            {
+                $pin = $value->[0]->textContent;
+            }
+        }
+
+    }
+
+    return $userid,$pin;
+}
+
 1;

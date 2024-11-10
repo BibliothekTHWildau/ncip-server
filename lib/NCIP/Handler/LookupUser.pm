@@ -32,46 +32,11 @@ sub handle {
     if ($xmldoc) {
 
         # Given our xml document, lets find our userid
-        my ($user_id) = $xmldoc->getElementsByTagNameNS( $self->namespace(), 'UserIdentifierValue' );
-
-        my $xpc = $self->xpc();
-
-        my $pin;
-        unless ($user_id) {
-
-            # We may get a password, username combo instead of userid
-            # Need to deal with that also
-            my $root = $xmldoc->documentElement();
-            my @authtypes = $xpc->findnodes( '//' . $ns . 'AuthenticationInput', $root );
-
-            my $barcode;
-
-            foreach my $node (@authtypes) {
-                my $class = $xpc->findnodes( './' . $ns . 'AuthenticationInputType/Value', $node );
-                $class ||= $xpc->findnodes( './' . $ns . 'AuthenticationInputType', $node );
-
-                my $value = $xpc->findnodes( './' . $ns . 'AuthenticationInputData/Value', $node );
-                $value ||= $xpc->findnodes( './' . $ns . 'AuthenticationInputData', $node );
-
-                if ( $class->[0]->textContent eq 'UserId' || $class->[0]->textContent eq 'Barcode Id' ) {
-                    $barcode = $value->[0]->textContent;
-                }
-                elsif ( $class->[0]->textContent eq 'Password' ) {
-                    $pin = $value->[0]->textContent;
-                }
-
-            }
-
-            $user_id = $barcode;
-        }
-        else {
-            $user_id = $user_id->textContent();
-        }
-
         # We may get a password, username combo instead of userid
         # Need to deal with that also
+        my ($userid,$pin) = $self->get_userid( $xmldoc );
 
-        my $user = NCIP::User->new( { userid => $user_id, ils => $self->ils } );
+        my $user = NCIP::User->new( { userid => $userid, ils => $self->ils } );
         $user->initialise($config);
 
         if ($pin) {
@@ -108,7 +73,7 @@ sub handle {
                                 problem_detail =>
                                   'Barcode Id or Password are invalid',
                                 problem_element => 'Barcode Id',
-                                problem_value   => $user_id,
+                                problem_value   => $userid,
                             }
                         ]
                     }
@@ -149,7 +114,7 @@ sub handle {
             my $elements = $self->get_user_elements($xmldoc);
 
             # todo remove log
-            my $log = Log::Log4perl->get_logger("NCIP"); 
+            #my $log = Log::Log4perl->get_logger("NCIP"); 
 
             # checked out items and holds / reserves
             my $loaned_items    = $user->items($config,'loaned') if ($self->get_desired_fields($xmldoc,'LoanedItemsDesired'));
@@ -169,7 +134,7 @@ sub handle {
                     requested_items => $requested_items,
                     fiscal_account => $fiscal_account,
                     user         => $user,
-                    user_id      => $user_id,
+                    user_id      => $userid,
                     config       => $config,
                 }
             );
@@ -184,7 +149,7 @@ sub handle {
                             problem_type    => 'Unkown User',
                             problem_detail  => 'User is not known',
                             problem_element => 'UserId',
-                            problem_value   => $user_id,
+                            problem_value   => $userid,
                         }
                     ],
                     from_agency  => $to,

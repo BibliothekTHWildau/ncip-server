@@ -22,36 +22,37 @@ our @ISA = qw(NCIP::Handler);
 sub handle {
     my $self   = shift;
     my $xmldoc = shift;
+
+    # as our vufind does not use namespace
+    my $ns = q{};
+
     if ($xmldoc) {
+        # todo delete
+        #use Data::Dumper;
+        #my $log = Log::Log4perl->get_logger("NCIP");
+
+        my ($userid,$pin) = $self->get_userid( $xmldoc );
+
+        my $xpc = $self->xpc();
         my $root = $xmldoc->documentElement();
-        my $xpc  = XML::LibXML::XPathContext->new;
-        $xpc->registerNs( 'ns', $self->namespace() );
 
-        my $userid;
-        my $itemid;
-        my $biblionumber;
-        my $branchcode;
+        # item
+        my $itemid   = $xpc->findnodes( '//*[local-name()="ItemIdentifierValue"]', $root );
+        $itemid = $itemid->[0]->textContent() if $itemid;
 
-        if ( $self->{ncip_version} == 1 ) {
-            ($userid) = $xpc->findnodes( '//UserIdentifierValue', $root );
-            $userid = $userid->textContent() if $userid;
+        my $biblionumber = $xpc->findnodes( '//*[local-name()="BibliographicRecordIdentifier"]', $root );
+        $biblionumber = $biblionumber->[0]->textContent() if $biblionumber;;
 
-            ($itemid) = $xpc->findnodes( '//ItemIdentifierValue', $root );
-            $itemid = $itemid->textContent() if $itemid;
+        my $request_scope = $xpc->findnodes( '//*[local-name()="RequestScopeType"]', $root );
+        $request_scope = $request_scope->[0]->textContent() if $request_scope;
 
-            ($biblionumber) = $xpc->findnodes( '//BibliographicRecordIdentifier', $root );
-            $biblionumber = $biblionumber->textContent() if $biblionumber;
-        } else {
-            ($userid) = $xpc->findnodes( '//ns:UserIdentifierValue', $root );
-            $userid = $userid->textContent() if $userid;
-
-            ($itemid) = $xpc->findnodes( '//ns:ItemIdentifierValue', $root );
-            $itemid = $itemid->textContent() if $itemid;
-
-            ($biblionumber) = $xpc->findnodes( '//ns:BibliographicRecordIdentifier', $root );
-            $biblionumber = $biblionumber->textContent() if $biblionumber;
+        if ($request_scope eq 'BibliographicId') {
+          # request is for a biblio
+          $biblionumber = $itemid if not $biblionumber;
+          $itemid = undef;
         }
 
+        my $branchcode;
         my $type = 'SYSNUMBER';
 
         my ( $from, $to ) = $self->get_agencies($xmldoc);
@@ -69,6 +70,9 @@ sub handle {
             };
         }
         else {
+            #todo remove
+            #my $log = Log::Log4perl->get_logger("NCIP");
+            #$log->info( Dumper($userid,$itemid,$biblionumber,$type,$branchcode) );
             $data = $self->ils->request( $userid, $itemid, $biblionumber, $type, $branchcode, $config );
         }
 

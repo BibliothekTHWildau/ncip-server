@@ -24,41 +24,19 @@ sub handle {
     my $xmldoc = shift;
     my $config = $self->{config}->{koha};
 
-    # as our vufind does not use namespace
-    my $ns = q{};
-    #todo remove
-    my $log = Log::Log4perl->get_logger("NCIP");
-
     if ($xmldoc) {
+
         my $root = $xmldoc->documentElement();
         my $xpc  = $self->xpc();
-        my $userid   = $xpc->findnodes( '//'.$ns.'UserIdentifierValue', $root );
-
-        unless ($userid) {          
-
-            # We may get a password, username combo instead of userid
-            # Need to deal with that also
-            my $root = $xmldoc->documentElement();
-            my @authtypes = $xpc->findnodes( '//' . $ns . 'AuthenticationInput', $root );
-
-            foreach my $node (@authtypes) {
-                
-                my $class = $xpc->findnodes( './' . $ns . 'AuthenticationInputType/Value', $node );
-                $class ||= $xpc->findnodes( './' . $ns . 'AuthenticationInputType', $node );
-
-                my $value = $xpc->findnodes( './' . $ns . 'AuthenticationInputData/Value', $node );
-                $value ||= $xpc->findnodes( './' . $ns . 'AuthenticationInputData', $node );
-
-                if ( $class->[0]->textContent eq 'UserId' ) {
-                    $userid = $value->[0]->textContent;
-                    last;
-                }
-            }
-            
-        }       
         
+        my ($userid,$pin) = $self->get_userid( $xmldoc );
 
-        my $itemid   = $xpc->findnodes( '//'.$ns.'ItemIdentifierValue', $root );
+        #todo remove
+        #use Data::Dumper;
+        #my $log = Log::Log4perl->get_logger("NCIP");
+
+        my $itemid   = $xpc->findnodes( '//*[local-name()="ItemIdentifierValue"]', $root );
+        $itemid = $itemid->[0]->textContent() if $itemid;
 
         my ( $from, $to ) = $self->get_agencies($xmldoc);
 

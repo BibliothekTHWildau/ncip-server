@@ -67,6 +67,11 @@ sub process_request {
         return $output;
     }
 
+    #todo remove
+    #use Data::Dumper;
+    #my $log = Log::Log4perl->get_logger("NCIP");
+    #$log->debug( Dumper( 'namespace',$self->namespace() ));
+
     my $handler = NCIP::Handler->new(
         {
             namespace    => $self->namespace(),

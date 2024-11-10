@@ -32,55 +32,15 @@ sub handle {
     my $ns = $self->{ncip_version} == 1 ? q{} : q{};
 
     # todo remove log
-    my $log = Log::Log4perl->get_logger("NCIP");
+    #my $log = Log::Log4perl->get_logger("NCIP");
 
     if ($xmldoc) {
 
-        # Given our xml document, lets find our userid
-        my ($user_id) = $xmldoc->getElementsByTagNameNS( $self->namespace(),
-            'UserIdentifierValue' );
+        # Given our xml document, lets find our userid and pin
+        my ($userid,$pin) = $self->get_userid( $xmldoc );
 
         my $xpc  = $self->xpc();
         my $root = $xmldoc->documentElement();
-
-        my $pin;
-        my $userid =
-          $xpc->findnodes( '//' . $ns . 'UserIdentifierValue', $root );
-
-        unless ($userid) {
-
-            # We may get a password, username combo instead of userid
-            # Need to deal with that also
-            my $root = $xmldoc->documentElement();
-            my @authtypes =
-              $xpc->findnodes( '//' . $ns . 'AuthenticationInput', $root );
-
-            foreach my $node (@authtypes) {
-
-                my $class =
-                  $xpc->findnodes( './' . $ns . 'AuthenticationInputType/Value',
-                    $node );
-                $class ||=
-                  $xpc->findnodes( './' . $ns . 'AuthenticationInputType',
-                    $node );
-
-                my $value =
-                  $xpc->findnodes( './' . $ns . 'AuthenticationInputData/Value',
-                    $node );
-                $value ||=
-                  $xpc->findnodes( './' . $ns . 'AuthenticationInputData',
-                    $node );
-
-                if ( $class->[0]->textContent eq 'UserId' ) {
-                    $userid = $value->[0]->textContent;
-                }
-                elsif ( $class->[0]->textContent eq 'Password' ) {
-                    $pin = $value->[0]->textContent;
-                }
-
-            }
-
-        }
 
         if ( not $userid ) {
             return $self->render_output(
@@ -98,8 +58,6 @@ sub handle {
                 }
             );
         }
-
-        $log->debug("userid found $userid");
 
         # We may get a password, username combo instead of userid
         # Need to deal with that also
@@ -124,8 +82,6 @@ sub handle {
             );
         }
 
-        $log->debug("pin found");
-
         # pin is given check if user is valid
         unless ( $user->is_valid() ) {
             return $self->render_output(
@@ -144,8 +100,6 @@ sub handle {
                 }
             );
         }
-
-        $log->debug("user valid");
 
         # valid data, authenticate
         my $authenticated = $user->authenticate( { pin => $pin } );
@@ -167,8 +121,6 @@ sub handle {
                 }
             );
         }
-
-        $log->debug("user authenticated");
 
         # find fields that shall be updated
 

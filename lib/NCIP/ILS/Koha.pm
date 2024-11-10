@@ -398,7 +398,6 @@ sub userenv {
         1,         #userflags
     );
 
-    C4::Context->_new_userenv('DUMMY_SESSION_ID');
     C4::Context::set_userenv(@USERENV);
 }
 
@@ -753,11 +752,26 @@ sub renew {
       }
       unless $item;
 
+    my $checkout = $item->checkout;
+    return {
+        success  => 0,
+        problems => [
+            {
+                problem_type   => 'Item Not Checked Out',
+                problem_detail =>
+                  'There is no record of the check out of the Item.',
+                problem_element => 'UniqueItemIdentifier',
+                problem_value   => $barcode,
+            }
+        ]
+      }
+      unless $checkout;
 
+    #$log->info( Dumper($checkout) );
     #my ( $ok, $error ) = CanBookBeRenewed( $patron->borrowernumber, $item->itemnumber );
-    my ( $ok, $error ) = CanBookBeRenewed( $patron, $item->checkout );
+    my ( $ok, $error ) = CanBookBeRenewed( $patron, $checkout );
 
-    $log->debug( "ok $ok error $error" );
+    #$log->debug( "ok $ok error $error" );
 
     $error //= q{};
 
@@ -930,7 +944,7 @@ sub request {
                 success  => 0,
                 problems => [
                     {
-                        problem_type   => 'Tempaorary Processing Failure',
+                        problem_type   => 'Temporary Processing Failure',
                         problem_detail =>
                           'Unable to handle record look up by ISBN. '
                           . 'Not yet implemented',
@@ -978,7 +992,7 @@ sub request {
                 borrowernumber => $borrowernumber,
                 biblionumber   => $biblionumber,
                 priority       => 1,
-                notes          => 'Placed By ILL',
+                notes          => 'Placed By NCIP',
                 itemnumber     => $itemnumber,
             }
         );
@@ -1323,7 +1337,7 @@ sub acceptitem {
                         borrowernumber => $patron->borrowernumber,
                         biblionumber   => $biblionumber,
                         priority       => 1,
-                        notes          => 'Placed By ILL',
+                        notes          => 'Placed By NCIP',
                         itemnumber     => $itemnumber,
                     }
                 );
