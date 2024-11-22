@@ -32,7 +32,7 @@ sub handle {
     my $ns = $self->{ncip_version} == 1 ? q{} : q{};
 
     # todo remove log
-    #my $log = Log::Log4perl->get_logger("NCIP");
+    my $log = Log::Log4perl->get_logger("NCIP");
 
     if ($xmldoc) {
 
