@@ -251,15 +251,15 @@ sub userholds {
     while ( my $c = $holds->next ) {
         my $item;
 
-        $log->debug( Dumper( $c->_result->{_column_data} ) );
+        #$log->debug( Dumper( $c->_result->{_column_data} ) );
 
         #$log->debug( Dumper($c->) );
-        $item->{barcode}           = $c->biblionumber;
-        $item->{title}             = $c->biblio->title;
-        $item->{BibliographicRecordIdentifier}   = $c->biblionumber;
-        $item->{DatePlaced}        = $c->reservedate;
-        $item->{LocationNameValue} = $c->branchcode;
-        $item->{PickupLocation}    = $c->desk_id;         # desk_id?;
+        $item->{barcode}                       = $c->biblionumber;
+        $item->{title}                         = $c->biblio->title;
+        $item->{BibliographicRecordIdentifier} = $c->biblionumber;
+        $item->{DatePlaced}                    = $c->reservedate;
+        $item->{LocationNameValue}             = $c->branchcode;
+        $item->{PickupLocation}                = $c->desk_id;        # desk_id?;
 
         if ( $c->found && $c->expirationdate ) {
             $item->{RequestType}      = 'Order';
@@ -267,7 +267,7 @@ sub userholds {
             $countOrder++;
         }
         else {
-            $item->{RequestType} = 'PreBook';
+            $item->{RequestType}       = 'PreBook';
             $item->{HoldQueuePosition} = $c->priority;
             $countPreBook++;
         }
@@ -287,6 +287,27 @@ sub userholds {
         push( @items, $item );
     }
 
+    # Ill requests
+    # as long as status is REQuested
+    my $illrequests = Koha::ILL::Requests->search(
+        { borrowernumber => $patron->borrowernumber ,  status => 'REQ' } );
+    #$log->debug( Dumper( $illrequests->unblessed ) );
+
+    while ( my $c = $illrequests->next ) {
+        my $item;
+        #$log->debug( Dumper( $c->biblio_id ) );
+        my $biblio = Koha::Biblios->find( $c->biblio_id );
+        $item->{barcode} = $c->biblio_id;
+        $item->{title}                         = $biblio->title;
+        $item->{BibliographicRecordIdentifier} = $c->biblio_id;
+        $item->{DatePlaced}                    = $c->placed;
+        $item->{LocationNameValue}             = $c->branchcode;
+
+        $item->{RequestType}      = 'Order';
+        $countOrder++;
+        push( @items, $item );
+    }
+
     #$log->debug( Dumper(@items) );
 
     my $result = {
@@ -297,6 +318,7 @@ sub userholds {
     return $result;
 
 }
+
 
 sub useritems {
 
